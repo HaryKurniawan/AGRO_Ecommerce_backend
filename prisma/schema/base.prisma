@@ -1,0 +1,16 @@
+// ─── Prisma: Generator & Datasource ──────────────────────────────────────────
+// File ini adalah entry point untuk Prisma multi-schema setup.
+// Schema dipecah ke beberapa file di folder ini berdasarkan domain:
+//   - core.prisma      → User, Auth, Profiles
+//   - ecommerce.prisma → Store, Products, Orders, Cart
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["core", "ecommerce"]
+}

@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "Menjalankan build..."
+npm run build
+
+if [ $? -ne 0 ]; then
+  echo "❌ Build GAGAL! Push dibatalkan. Perbaiki error build terlebih dahulu."
+  exit 1
+fi
+
+echo "✅ Build berhasil. Push dilanjutkan."

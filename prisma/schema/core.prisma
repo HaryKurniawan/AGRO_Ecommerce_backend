@@ -1,0 +1,147 @@
+// ─── Core Schema: Pengguna, Profil, Autentikasi ──────────────────────────────────────
+// PostgreSQL Schema: "core"
+
+model Pengguna {
+  id                     String    @id @default(uuid())
+  email                  String    @unique
+  kataSandi              String
+  nama                   String?
+  noTelepon              String?
+  peran                  Peran     @default(KONSUMEN)
+  aktif                  Boolean   @default(true)
+  emailTerverifikasiPada DateTime?
+  tokenVerifikasiEmail   String? // Token OTP atau token link verifikasi
+  kadaluarsaTokenEmail   DateTime? // Kapan token kadaluarsa
+  googleId               String?   @unique // ID dari Google OAuth
+  tokenResetKataSandi    String? // Token untuk reset password
+  kadaluarsaTokenReset   DateTime? // Kapan token reset kadaluarsa
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  profilPenjual  ProfilPenjual?
+
+  // Ecommerce relations
+  ecomCart       KeranjangEcom?
+  ecomOrders     PesananEcom[]
+  addresses      AlamatKonsumen[]
+  notifications  Notifikasi[]
+  stockHistories RiwayatStokProduk[]
+  productReviews UlasanProdukEcom[]
+
+  kurirTokoId       String?
+  kurirToko         Toko?                 @relation("StoreCouriers", fields: [kurirTokoId], references: [id])
+  logAktivitas      LogAktivitas[]
+  profilPenjualKurir ProfilPenjual?       @relation("ProfilPenjualKurir")
+
+  @@map("pengguna")
+  @@schema("core")
+}
+
+enum Peran {
+  SUPER_ADMIN
+  PENJUAL
+  KONSUMEN
+  KURIR
+  ADMIN_CS
+  ADMIN_GUDANG
+  GUDANG
+
+  @@schema("core")
+}
+
+// ─── Profil Penjual ──────────────────────────────────────────────────────────
+
+model ProfilPenjual {
+  id                  String        @id @default(uuid())
+  penggunaId          String        @unique
+  namaToko            String
+  slugToko            String        @unique
+  deskripsiToko       String?
+  logoTokoUrl         String?
+  bannerTokoUrl       String?
+  noTelepon           String
+  alamat              String
+  kota                String
+  provinsi            String
+  kodePos             String
+  status              StatusPenjual @default(PENDING)
+  terverifikasiPada   DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  pengguna Pengguna @relation(fields: [penggunaId], references: [id], onDelete: Cascade)
+  toko     Toko?
+  kurirId  String?  @unique
+  kurir    Pengguna? @relation("ProfilPenjualKurir", fields: [kurirId], references: [id], onDelete: SetNull)
+
+  @@map("profil_penjual")
+  @@schema("core")
+}
+
+enum StatusPenjual {
+  PENDING
+  DISETUJUI
+  DITOLAK
+  DITANGGUHKAN
+
+  @@schema("core")
+}
+
+
+// ─── Chat ────────────────────────────────────────────────────────────────────
+
+model PercakapanChat {
+  id                 String    @id @default(uuid())
+  tipe               TipeChat
+  partisipanA        String
+  partisipanB        String
+  tokoId             String? // Store metadata reference
+  pesanTerakhir      String?
+  waktuPesanTerakhir DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  pesan PesanChat[]
+
+  @@unique([tipe, partisipanA, partisipanB])
+  @@map("percakapan_chat")
+  @@schema("core")
+}
+
+enum TipeChat {
+  CHAT_PENJUAL
+  ADMIN_CS
+
+  @@schema("core")
+}
+
+model PesanChat {
+  id           String   @id @default(uuid())
+  percakapanId String
+  pengirimId   String
+  isiPesan     String
+  sudahDibaca  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  percakapan PercakapanChat @relation(fields: [percakapanId], references: [id], onDelete: Cascade)
+
+  @@map("pesan_chat")
+  @@schema("core")
+}
+
+model LogAktivitas {
+  id         String   @id @default(uuid())
+  penggunaId String?
+  kategori   String
+  aksi       String
+  deskripsi  String
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  pengguna Pengguna? @relation(fields: [penggunaId], references: [id], onDelete: SetNull)
+
+  @@map("log_aktivitas")
+  @@schema("core")
+}

@@ -1,0 +1,5 @@
+{
+  "src/**/*.ts": [
+    "eslint --max-warnings 9999 --no-warn-ignored"
+  ]
+}
