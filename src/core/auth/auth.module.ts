@@ -28,7 +28,9 @@ import { EmailService } from "../../common/services/email.service";
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow<string>("JWT_SECRET"),
         signOptions: {
-          expiresIn: configService.get<string>("JWT_EXPIRES_IN") || "7d",
+          expiresIn:
+            configService.get<string>("JWT_EXPIRES_IN")?.replace(/['"]/g, "")?.trim() ||
+            "7d",
         },
       }),
     }),
