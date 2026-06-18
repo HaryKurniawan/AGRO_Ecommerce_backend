@@ -58,9 +58,9 @@ export class PaymentWebhookController {
       `Xendit webhook received: event=${event}, externalId=${externalId}`,
     );
 
-    // 2. Hanya proses event "PAID" saja
-    if (event !== "PAID") {
-      this.logger.log(`Skipping non-PAID event: ${event}`);
+    // 2. Hanya proses event "PAID" dan "EXPIRED"
+    if (event !== "PAID" && event !== "EXPIRED") {
+      this.logger.log(`Skipping event: ${event}`);
       return { message: "Event ignored" };
     }
 
@@ -78,19 +78,25 @@ export class PaymentWebhookController {
       return { message: "Pesanan not found" };
     }
 
-    // 4. Update status semua pesanan terkait menjadi DIPROSES
+    // 4. Update status semua pesanan terkait sesuai event Xendit
     for (const pesanan of pesananList) {
-      if (pesanan.status === "MENUNGGU_BAYAR") {
+      // EVENT: PAID
+      // Mengubah status menjadi DIPROSES jika pesanan belum diproses.
+      // Jika pesanan sebelumnya DIBATALKAN (misal expired lalu dibayar manual/telat), kita terima pembayarannya
+      if (
+        event === "PAID" &&
+        (pesanan.status === "MENUNGGU_BAYAR" || pesanan.status === "DIBATALKAN")
+      ) {
         const updated = await this.prisma.pesananEcom.update({
           where: { id: pesanan.id },
           data: { status: "DIPROSES" },
         });
 
         this.logger.log(
-          `Pesanan ${pesanan.id} status updated to DIPROSES via Xendit webhook`,
+          `Pesanan ${pesanan.id} status updated to DIPROSES via Xendit webhook (Event: PAID)`,
         );
 
-        // 5. Update profit transaction status
+        // Update profit transaction status
         try {
           await this.profitReportService.updateProfitTransactionStatus(
             pesanan.id,
@@ -103,7 +109,36 @@ export class PaymentWebhookController {
           );
         }
 
-        // 6. Emit SSE event ke frontend untuk real-time update
+        // Emit SSE event ke frontend untuk real-time update
+        this.eventEmitter.emit("order.status.updated", {
+          orderId: pesanan.id,
+          status: updated.status,
+          tokoId: pesanan.tokoId,
+        });
+      }
+      // EVENT: EXPIRED
+      // Membatalkan pesanan otomatis jika belum dibayar saat invoice expired
+      else if (event === "EXPIRED" && pesanan.status === "MENUNGGU_BAYAR") {
+        const updated = await this.prisma.pesananEcom.update({
+          where: { id: pesanan.id },
+          data: { status: "DIBATALKAN" },
+        });
+
+        this.logger.log(
+          `Pesanan ${pesanan.id} status updated to DIBATALKAN via Xendit webhook (Event: EXPIRED)`,
+        );
+
+        // Batalkan profit transaction
+        try {
+          await this.profitReportService.handleOrderCancellation(pesanan.id);
+        } catch (err) {
+          this.logger.error(
+            `Failed to handle profit transaction cancellation for ${pesanan.id}:`,
+            err,
+          );
+        }
+
+        // Emit SSE event ke frontend
         this.eventEmitter.emit("order.status.updated", {
           orderId: pesanan.id,
           status: updated.status,

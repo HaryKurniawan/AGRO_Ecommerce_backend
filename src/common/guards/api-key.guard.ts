@@ -26,6 +26,7 @@ export class ApiKeyGuard implements CanActivate {
       "/api/ecom-pesanan/stream",
       "/api/chat/stream",
       "/api/master-komoditas", // read-only proxy ke gudang, tidak perlu API key
+      "/api/payment/xendit-webhook", // bypass untuk callback webhook dari xendit
       // demand-signal/gudang dikonsumsi via API key — TIDAK bypass, sudah handled oleh guard itu sendiri
     ];
 

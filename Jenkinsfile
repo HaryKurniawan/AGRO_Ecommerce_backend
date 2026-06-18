@@ -55,6 +55,15 @@ pipeline {
                 '''
             }
         }
+
+        stage('Database Setup') {
+            steps {
+                sh '''
+                echo "Running Prisma Database Seed..."
+                docker exec agro-backend npx prisma db seed
+                '''
+            }
+        }
     }
 
     post {
