@@ -20,22 +20,7 @@ export async function seedUsers(prisma: PrismaClient) {
     },
   });
 
-  // ── Customer Service ────────────────────────────────────────────────
-  const csUser = await prisma.pengguna.upsert({
-    where: { email: 'cs@agro.local' },
-    update: {},
-    create: {
-      id: '550e8400-e29b-41d4-a716-446655440014',
-      email: 'cs@agro.local',
-      kataSandi: hashedPassword,
-      nama: 'Admin Customer Service',
-      peran: 'ADMIN_CS',
-      emailTerverifikasiPada: new Date(),
-    },
-  });
-
   return {
     admin,
-    csUser,
   };
 }

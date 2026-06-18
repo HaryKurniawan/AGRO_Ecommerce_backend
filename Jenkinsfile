@@ -59,8 +59,8 @@ pipeline {
         stage('Database Setup') {
             steps {
                 sh '''
-                echo "Running Prisma Migrations..."
-                docker exec agro-backend npx prisma migrate deploy
+                echo "Running Prisma DB Push..."
+                docker exec agro-backend npx prisma db push --accept-data-loss
                 
                 echo "Running Prisma Database Seed..."
                 docker exec agro-backend npx prisma db seed
