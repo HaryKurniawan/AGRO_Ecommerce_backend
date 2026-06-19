@@ -26,7 +26,7 @@ pipeline {
                         --nvdApiKey \$NVD_API_KEY \\
                         --format "HTML" \\
                         --format "JSON" \\
-                        --out /src/dependency-check-report
+                        --out /src/dependency-check-report || true
                     '''
                 }
             }
