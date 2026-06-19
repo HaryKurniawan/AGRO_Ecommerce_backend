@@ -66,9 +66,9 @@ pipeline {
                 sh '''
                 echo "Waiting application startup..."
 
-                for i in $(seq 1 30)
+                for i in \$(seq 1 30)
                 do
-                  if curl -sf https://api.agro-ecommerce.web.id/api/health > /dev/null; then
+                  if curl -sf http://localhost:4000/api/health > /dev/null; then
                     echo "Application is healthy!"
                     exit 0
                   fi
