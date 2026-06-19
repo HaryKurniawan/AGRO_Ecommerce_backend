@@ -68,7 +68,7 @@ pipeline {
 
                 for i in \$(seq 1 30)
                 do
-                  if curl -sf http://localhost:4000/api/health > /dev/null; then
+                  if curl -sf http://agro-backend:4000/api/health > /dev/null; then
                     echo "Application is healthy!"
                     exit 0
                   fi
