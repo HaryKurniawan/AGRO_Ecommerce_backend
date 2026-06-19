@@ -4,10 +4,14 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
+import { RedisService } from "../../../infrastructure/redis/redis.service";
 
 @Injectable()
 export class UpdateProductPhotosUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
 
   async execute(produkId: string, fotoUrls: string[]) {
     // Validate
@@ -43,6 +47,9 @@ export class UpdateProductPhotosUseCase {
         updatedAt: true,
       },
     });
+
+    await this.redisService.getClient().del(`products:detail:${produkId}`);
+    await this.redisService.invalidateByPrefix("products:list");
 
     return {
       statusCode: 200,

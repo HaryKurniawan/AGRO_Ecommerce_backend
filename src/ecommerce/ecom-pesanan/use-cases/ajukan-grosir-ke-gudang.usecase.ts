@@ -180,12 +180,31 @@ export class AjukanGrosirKeGudangUseCase {
 
     const productDetails = await Promise.all(productDetailsPromises);
 
+    // Fetch customer coordinates for direct warehouse delivery
+    const userAddress = await this.prisma.alamatKonsumen.findFirst({
+      where: {
+        konsumenId: pesanan.konsumenId,
+        alamat: pesanan.alamatKirim,
+      },
+    });
+
+    const isPesananGrosir = true;
+    const alamatKirim = pesanan.alamatKirim;
+    const lat = userAddress?.lat;
+    const lng = userAddress?.lng;
+    const konsumenId = pesanan.konsumenId;
+
     // 1. First, create the local stock request with warehouse product IDs
     const newRequest = await this.pengajuanStokRepo.create({
       data: {
         tokoId: toko.id,
         gudangId,
         catatan: catatanGrosir,
+        isPesananGrosir,
+        alamatKirim,
+        lat,
+        lng,
+        konsumenId,
         items: {
           create: productDetails.map((item) => ({
             produkGudangId: item.produkGudangId,
@@ -213,6 +232,11 @@ export class AjukanGrosirKeGudangUseCase {
           tokoId: toko.id,
           tokoNama: toko.nama,
           catatan: catatanGrosir,
+          isPesananGrosir,
+          alamatKirim,
+          lat,
+          lng,
+          konsumenId,
           items: productDetails,
           message: `Ada pengajuan stok baru [GROSIR] dari toko ${toko.nama}`,
         },

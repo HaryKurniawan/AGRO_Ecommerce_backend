@@ -243,14 +243,14 @@ export class EcomProductsController {
   @ApiOperation({ summary: "Update packaging variant price/status" })
   async updateVarian(
     @Param("id") id: string,
-    @Body() payload: { hargaPerKemasan?: number; isActive?: boolean },
+    @Body() payload: { biayaTambahan?: number; isActive?: boolean },
   ) {
     return this.productsRepo.updateVarian({
       where: { id },
       data: {
-        hargaPerKemasan:
-          payload.hargaPerKemasan !== undefined
-            ? Number(payload.hargaPerKemasan)
+        biayaTambahan:
+          payload.biayaTambahan !== undefined
+            ? Number(payload.biayaTambahan)
             : undefined,
         isActive:
           payload.isActive !== undefined

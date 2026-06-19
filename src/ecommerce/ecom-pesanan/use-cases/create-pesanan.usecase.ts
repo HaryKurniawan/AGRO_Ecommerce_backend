@@ -31,6 +31,7 @@ export class CreateOrderUseCase {
       metodeBayar: string;
       alamatKirim: string;
       jadwalKirim?: string;
+      mobileNumber?: string; // Khusus OVO
       pesanan: {
         tokoId: string;
         ongkir: number;
@@ -72,12 +73,11 @@ export class CreateOrderUseCase {
 
     // Loop through each toko's pesanan
     for (const storeOrder of data.pesanan) {
-      // 1. Calculate total weight (KG)
       let totalWeightGram = 0;
       for (const item of storeOrder.item) {
         const product = await this.productsRepo.findUnique({
           where: { id: item.produkId },
-          select: { id: true, nama: true, beratGram: true },
+          select: { id: true, nama: true, beratGram: true, harga: true },
         });
 
         if (!product) {
@@ -87,17 +87,26 @@ export class CreateOrderUseCase {
         }
 
         let weightGram = product.beratGram || 1000;
+        let calculatedPrice = product.harga;
+
         if (item.varianKemasanId) {
           const varian = await this.prisma.varianKemasan.findUnique({
             where: { id: item.varianKemasanId },
           });
           if (varian) {
             weightGram = varian.ukuranKg * 1000;
+            // Dynamic Pricing Formula: (Base Price * Kg) + Extra Fee
+            calculatedPrice = (product.harga * varian.ukuranKg) + (varian.biayaTambahan || 0);
           }
         }
 
+        // Prevent price manipulation from frontend
+        item.harga = calculatedPrice;
+
         totalWeightGram += weightGram * item.jumlah;
       }
+
+      const isB2B = totalWeightGram >= 300000; // >= 300kg
 
       // Re-run calculateShippingCosts explicitly for this store with accurate weight
       const accurateShipping = await this.calcShippingUC.execute({
@@ -133,34 +142,36 @@ export class CreateOrderUseCase {
       const diprosesOleh = "TOKO";
       const gudangId: string | undefined = undefined;
 
-      // 3. Check and deduct inventory from Store Inventory
-      for (const item of storeOrder.item) {
-        if (item.varianKemasanId) {
-          const varian = await this.prisma.varianKemasan.findUnique({
-            where: { id: item.varianKemasanId },
-          });
-          if (!varian || !varian.isActive || varian.stokKemasan < item.jumlah) {
-            throw new BadRequestException(
-              `Stok kemasan untuk produk ${item.produkId} (${varian?.ukuranKg}kg) tidak mencukupi (Tersedia: ${varian?.stokKemasan || 0} unit)`,
-            );
-          }
-        } else {
-          const productInventory = await this.productsRepo.findManyInventory({
-            where: {
-              tokoId: storeOrder.tokoId,
-              produkId: item.produkId,
-            },
-          });
+      // 3. Check and deduct inventory from Store Inventory (Only for Retail)
+      if (!isB2B) {
+        for (const item of storeOrder.item) {
+          if (item.varianKemasanId) {
+            const varian = await this.prisma.varianKemasan.findUnique({
+              where: { id: item.varianKemasanId },
+            });
+            if (!varian || !varian.isActive || varian.stokKemasan < item.jumlah) {
+              throw new BadRequestException(
+                `Stok kemasan untuk produk ${item.produkId} (${varian?.ukuranKg}kg) tidak mencukupi (Tersedia: ${varian?.stokKemasan || 0} unit)`,
+              );
+            }
+          } else {
+            const productInventory = await this.productsRepo.findManyInventory({
+              where: {
+                tokoId: storeOrder.tokoId,
+                produkId: item.produkId,
+              },
+            });
 
-          const totalAvailableStock = productInventory.reduce(
-            (sum, inv) => sum + inv.stokTersediaKg,
-            0,
-          );
-
-          if (totalAvailableStock < item.jumlah) {
-            throw new BadRequestException(
-              `Stok Toko untuk produk ${item.produkId} tidak mencukupi (Tersedia: ${totalAvailableStock}kg)`,
+            const totalAvailableStock = productInventory.reduce(
+              (sum, inv) => sum + inv.stokTersediaKg,
+              0,
             );
+
+            if (totalAvailableStock < item.jumlah) {
+              throw new BadRequestException(
+                `Stok Toko untuk produk ${item.produkId} tidak mencukupi (Tersedia: ${totalAvailableStock}kg)`,
+              );
+            }
           }
         }
       }
@@ -214,8 +225,12 @@ export class CreateOrderUseCase {
             produkId: itemPesanan.produkId,
             jumlah: itemPesanan.jumlah,
             harga: itemPesanan.harga,
-            produk: { tokoId: storeOrder.tokoId },
+            produk: { 
+              tokoId: storeOrder.tokoId,
+              hargaBeli: itemPesanan.produk.hargaBeli 
+            },
             pesanan: { status: pesanan.status },
+            isB2B: isB2B,
           });
         }
         console.log(
@@ -239,70 +254,72 @@ export class CreateOrderUseCase {
         });
       }
 
-      for (const item of storeOrder.item) {
-        let qtyToDeductKg = item.jumlah;
+      if (!isB2B) {
+        for (const item of storeOrder.item) {
+          let qtyToDeductKg = item.jumlah;
 
-        if (item.varianKemasanId) {
-          const varian = await this.prisma.varianKemasan.update({
-            where: { id: item.varianKemasanId },
-            data: {
-              stokKemasan: { decrement: item.jumlah },
+          if (item.varianKemasanId) {
+            const varian = await this.prisma.varianKemasan.update({
+              where: { id: item.varianKemasanId },
+              data: {
+                stokKemasan: { decrement: item.jumlah },
+              },
+            });
+            qtyToDeductKg = item.jumlah * (varian?.ukuranKg || 1.0);
+          }
+
+          const inventories = await this.productsRepo.findManyInventory({
+            where: {
+              tokoId: storeOrder.tokoId,
+              produkId: item.produkId,
             },
+            take: 1,
           });
-          qtyToDeductKg = item.jumlah * (varian?.ukuranKg || 1.0);
-        }
+          const inventory = inventories[0];
 
-        const inventories = await this.productsRepo.findManyInventory({
-          where: {
-            tokoId: storeOrder.tokoId,
-            produkId: item.produkId,
-          },
-          take: 1,
-        });
-        const inventory = inventories[0];
+          if (inventory) {
+            await this.productsRepo.updateInventory({
+              where: { id: inventory.id },
+              data: {
+                stokTersediaKg: { decrement: qtyToDeductKg },
+                stokFisikKg: { decrement: qtyToDeductKg },
+              },
+            });
+          }
 
-        if (inventory) {
-          await this.productsRepo.updateInventory({
-            where: { id: inventory.id },
-            data: {
-              stokTersediaKg: { decrement: qtyToDeductKg },
-              stokFisikKg: { decrement: qtyToDeductKg },
-            },
-          });
-        }
+          // Final sync for product total stock and status
+          const totalStok = await this.productsRepo
+            .findUnique({
+              where: { id: item.produkId },
+              select: { stok: true },
+            })
+            .then((p) => p?.stok ?? 0);
 
-        // Final sync for product total stock and status
-        const totalStok = await this.productsRepo
-          .findUnique({
+          const finalTotalStok = Math.max(0, totalStok - qtyToDeductKg);
+
+          await this.productsRepo.update({
             where: { id: item.produkId },
-            select: { stok: true },
-          })
-          .then((p) => p?.stok ?? 0);
+            data: {
+              stok: finalTotalStok,
+              status: finalTotalStok === 0 ? "OUT_OF_STOCK" : undefined,
+            },
+          });
 
-        const finalTotalStok = Math.max(0, totalStok - qtyToDeductKg);
-
-        await this.productsRepo.update({
-          where: { id: item.produkId },
-          data: {
-            stok: finalTotalStok,
-            status: finalTotalStok === 0 ? "OUT_OF_STOCK" : undefined,
-          },
-        });
-
-        // Log history (represented in total kg)
-        await this.productsRepo.createStockHistory({
-          data: {
-            produkId: item.produkId,
-            penggunaId,
-            tipe: "OUT",
-            kuantitas: -Math.round(qtyToDeductKg),
-            stokAkhir: Math.floor(finalTotalStok),
-            catatan: item.varianKemasanId
-              ? `Penjualan Pesanan #${pesanan.id} (${item.jumlah} kemasan)`
-              : `Penjualan Pesanan #${pesanan.id} (Unified Stock)`,
-            pesananId: pesanan.id,
-          },
-        });
+          // Log history (represented in total kg)
+          await this.productsRepo.createStockHistory({
+            data: {
+              produkId: item.produkId,
+              penggunaId,
+              tipe: "OUT",
+              kuantitas: -Math.round(qtyToDeductKg),
+              stokAkhir: Math.floor(finalTotalStok),
+              catatan: item.varianKemasanId
+                ? `Penjualan Pesanan #${pesanan.id} (${item.jumlah} kemasan)`
+                : `Penjualan Pesanan #${pesanan.id} (Unified Stock)`,
+              pesananId: pesanan.id,
+            },
+          });
+        }
       }
 
       createdOrders.push(pesanan);
@@ -334,14 +351,8 @@ export class CreateOrderUseCase {
     }
 
     // ========== XENDIT PAYMENT GATEWAY ==========
-    // Jika bukan COD atau MANUAL, buat Xendit invoice untuk semua pesanan
-    const isOnlinePayment = ![
-      "COD",
-      "MANUAL",
-      "CASH",
-    ].includes(data.metodeBayar?.toUpperCase());
-
-    if (isOnlinePayment && createdOrders.length > 0) {
+    // SEMUA transaksi WAJIB menggunakan Payment Gateway Xendit
+    if (createdOrders.length > 0) {
       try {
         // Ambil data konsumen untuk email
         const konsumen = await this.prisma.pengguna.findUnique({
@@ -360,32 +371,82 @@ export class CreateOrderUseCase {
           .map((o) => o.id)
           .join("-");
 
-        const invoice = await this.xenditService.createInvoice({
-          externalId,
-          amount: grandTotal,
-          payerEmail: konsumen?.email,
-          customerName: konsumen?.nama,
-          description: `Pembayaran ${createdOrders.length} pesanan - Agro Jabar`,
-        });
+        const paymentMethodUpper = data.metodeBayar?.toUpperCase();
+        let finalPaymentUrl = "";
+        let finalPaymentId = "";
+
+        // 1. Virtual Account (BCA_VA, BRI_VA, MANDIRI_VA)
+        if (paymentMethodUpper.endsWith("_VA")) {
+          const bankCode = paymentMethodUpper.split("_")[0]; // "BCA", "BRI", "MANDIRI"
+          
+          const va = await this.xenditService.createVirtualAccount({
+            externalId,
+            bankCode,
+            name: konsumen?.nama || "Pelanggan Agro Jabar",
+            expectedAmount: grandTotal,
+          });
+
+          finalPaymentId = va.vaId;
+          finalPaymentUrl = va.accountNumber; // Simpan accountNumber sbg paymentUrl
+        } 
+        // 2. QRIS
+        else if (paymentMethodUpper === "QRIS") {
+          const qr = await this.xenditService.createQrCode({
+            externalId,
+            amount: grandTotal,
+          });
+
+          finalPaymentId = qr.qrId;
+          finalPaymentUrl = qr.qrString; // Simpan QR String sbg paymentUrl
+        }
+        // 3. E-Wallet (OVO, DANA)
+        else if (["OVO", "DANA"].includes(paymentMethodUpper)) {
+          const channelCode = `ID_${paymentMethodUpper}`; // "ID_OVO", "ID_DANA"
+          
+          const ewallet = await this.xenditService.createEWalletCharge({
+            externalId,
+            amount: grandTotal,
+            channelCode,
+            mobileNumber: data.mobileNumber, // Penting untuk OVO
+          });
+
+          finalPaymentId = ewallet.chargeId;
+          // Untuk OVO, checkoutUrl biasanya kosong karena Push Notif. 
+          // Untuk DANA, ada link web checkout.
+          finalPaymentUrl = ewallet.checkoutUrl || "EWALLET_PENDING";
+        }
+        // Fallback: Invoice jika tidak dikenali (mencegah crash)
+        else {
+          const invoice = await this.xenditService.createInvoice({
+            externalId,
+            amount: grandTotal,
+            payerEmail: konsumen?.email,
+            customerName: konsumen?.nama,
+            description: `Pembayaran ${createdOrders.length} pesanan - Agro Jabar`,
+          });
+
+          finalPaymentId = invoice.invoiceId;
+          finalPaymentUrl = invoice.invoiceUrl;
+        }
 
         // Simpan paymentId dan paymentUrl ke semua pesanan
         for (const order of createdOrders) {
           await this.prisma.pesananEcom.update({
             where: { id: order.id },
             data: {
-              paymentId: externalId,
-              paymentUrl: invoice.invoiceUrl,
+              paymentId: finalPaymentId,
+              paymentUrl: finalPaymentUrl,
             },
           });
           // Update object in memory agar response ke frontend sudah update
-          order.paymentId = externalId;
-          order.paymentUrl = invoice.invoiceUrl;
+          order.paymentId = finalPaymentId;
+          order.paymentUrl = finalPaymentUrl;
         }
       } catch (xenditError) {
-        // Jika Xendit gagal, pesanan tetap tersimpan tapi tanpa link pembayaran
+        // Jika Xendit gagal, pesanan tetap tersimpan tapi tanpa link/VA
         // Log error tapi jangan batalkan pesanan
         console.error(
-          "[CreateOrderUseCase] Xendit invoice creation failed:",
+          "[CreateOrderUseCase] Xendit creation failed:",
           xenditError?.message,
         );
       }

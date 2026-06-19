@@ -51,21 +51,44 @@ export class PaymentWebhookController {
       throw new BadRequestException("Invalid webhook token");
     }
 
-    const event = payload.status as string;
-    const externalId = payload.external_id as string;
+    // 2. Normalisasi Payload (karena Invoice, FVA, QRIS, EWallet strukturnya berbeda)
+    let externalId = "";
+    let isPaid = false;
+    let event = ""; // Defined event variable
 
-    this.logger.log(
-      `Xendit webhook received: event=${event}, externalId=${externalId}`,
-    );
+    // A. Format FVA (Virtual Account) -> tidak ada status, kalau dipanggil artinya terbayar
+    if (payload.callback_virtual_account_id) {
+      externalId = payload.external_id as string;
+      isPaid = true;
+      event = "PAID";
+    }
+    // B. Format E-Wallet & QRIS (v2 API webhook) -> dibungkus dalam "data"
+    else if (payload.event === "ewallet.capture" || payload.event === "qr.payment") {
+      const data = payload.data as any;
+      externalId = (data.reference_id || data.external_id) as string;
+      isPaid = data.status === "SUCCEEDED";
+      event = isPaid ? "PAID" : data.status;
+    }
+    // C. Format Invoice (lama)
+    else if (payload.status) {
+      externalId = payload.external_id as string;
+      isPaid = payload.status === "PAID" || payload.status === "SETTLED";
+      event = payload.status as string;
+    }
 
-    // 2. Hanya proses event "PAID" dan "EXPIRED"
-    if (event !== "PAID" && event !== "EXPIRED") {
-      this.logger.log(`Skipping event: ${event}`);
+    if (!externalId) {
+      this.logger.warn("Webhook ignored: Missing externalId/reference_id in payload");
+      return { message: "Webhook ignored - No ID" };
+    }
+
+    this.logger.log(`Xendit webhook processed: externalId=${externalId}, isPaid=${isPaid}, event=${event}`);
+
+    if (!isPaid && event !== "EXPIRED") {
+      this.logger.log(`Skipping event because it is not a success payment event or expired.`);
       return { message: "Event ignored" };
     }
 
     // 3. Cari semua pesanan berdasarkan paymentId (externalId)
-    //    externalId formatnya: "AGRO-{pesananId1}-{pesananId2}-..."
     //    Atau kita cari berdasarkan paymentId yang kita simpan
     const pesananList = await this.prisma.pesananEcom.findMany({
       where: { paymentId: externalId },
@@ -90,6 +113,19 @@ export class PaymentWebhookController {
         const updated = await this.prisma.pesananEcom.update({
           where: { id: pesanan.id },
           data: { status: "DIPROSES" },
+          include: { 
+            item: { 
+              include: { 
+                produk: { 
+                  include: { 
+                    masterProduk: { 
+                      include: { mappingGudang: true } 
+                    } 
+                  } 
+                } 
+              } 
+            } 
+          }
         });
 
         this.logger.log(
@@ -115,6 +151,62 @@ export class PaymentWebhookController {
           status: updated.status,
           tokoId: pesanan.tokoId,
         });
+
+        // Auto-Generate Pengajuan Stok untuk pesanan B2B
+        if (updated.isGrosir) {
+          try {
+            // Coba ambil gudangId dari mapping master produk item pertama
+            let gudangId = "B2B_AUTO_WAREHOUSE";
+            for (const orderItem of updated.item) {
+              const mappings = orderItem.produk?.masterProduk?.mappingGudang;
+              if (mappings && mappings.length > 0) {
+                gudangId = mappings[0].gudangId;
+                break;
+              }
+            }
+
+            // Coba ambil link koordinat Google Maps dari alamat pengiriman
+            let gpsLink = "";
+            try {
+              if (updated.alamatKirim) {
+                const alamatObj = JSON.parse(updated.alamatKirim);
+                if (alamatObj.lat && alamatObj.lng) {
+                  gpsLink = `(GPS: https://www.google.com/maps?q=${alamatObj.lat},${alamatObj.lng})`;
+                }
+              }
+            } catch (e) {
+              // Ignore parse error
+            }
+
+            const catatan = `Pesanan B2B (${updated.id}): Kirim langsung ke alamat konsumen ${gpsLink}`.trim();
+
+            await this.prisma.pengajuanStokToko.create({
+              data: {
+                tokoId: updated.tokoId || "",
+                gudangId: gudangId,
+                status: "SELESAI", // Asumsi SBU memproses & mengirim langsung
+                modePengemasan: "DEFAULT",
+                catatan: catatan,
+                items: {
+                  create: updated.item.map((i) => {
+                    const mapped = i.produk?.masterProduk?.mappingGudang?.[0];
+                    return {
+                      produkGudangId: mapped?.produkGudangId || "UNKNOWN",
+                      namaProduk: i.produk?.nama || "Unknown Product",
+                      satuan: i.produk?.satuan || "kg",
+                      hargaGudang: i.produk?.harga || 0,
+                      jumlahPermintaan: i.jumlah,
+                      jumlahDisetujui: i.jumlah,
+                    };
+                  }),
+                },
+              },
+            });
+            this.logger.log(`Auto-generated PengajuanStokToko B2B for order ${updated.id}`);
+          } catch (err) {
+            this.logger.error(`Failed to auto-generate B2B PengajuanStokToko for ${updated.id}:`, err);
+          }
+        }
       }
       // EVENT: EXPIRED
       // Membatalkan pesanan otomatis jika belum dibayar saat invoice expired

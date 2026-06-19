@@ -48,4 +48,8 @@ export class ProfitSummaryFiltersDto {
   @IsOptional()
   @IsEnum(["day", "week", "month"])
   groupBy?: "day" | "week" | "month" = "day";
+
+  @IsOptional()
+  @Transform(({ value }) => value === "true" || value === true)
+  isB2B?: boolean;
 }

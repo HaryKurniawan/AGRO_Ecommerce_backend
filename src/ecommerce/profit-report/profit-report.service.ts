@@ -19,6 +19,7 @@ import { GetProfitSummaryUseCase } from "./use-cases/get-profit-summary.usecase"
 import { UpdateProfitTransactionStatusUseCase } from "./use-cases/update-profit-transaction-status.usecase";
 import { HandleOrderCancellationUseCase } from "./use-cases/handle-order-cancellation.usecase";
 import { StokMasukService } from "../stok-masuk/stok-masuk.service";
+import { GetAdminB2BSummaryQuery } from "./queries/get-admin-b2b-summary.query";
 
 @Injectable()
 export class ProfitReportService {
@@ -29,8 +30,13 @@ export class ProfitReportService {
     private getProfitSummaryUC: GetProfitSummaryUseCase,
     private updateProfitTxStatusUC: UpdateProfitTransactionStatusUseCase,
     private handleOrderCancellationUC: HandleOrderCancellationUseCase,
+    private getAdminB2BSummaryQuery: GetAdminB2BSummaryQuery,
     private stokMasukService: StokMasukService,
   ) {}
+
+  async getAdminB2BSummary(filters: { startDate?: string; endDate?: string }) {
+    return this.getAdminB2BSummaryQuery.execute(filters);
+  }
 
   async calculateFIFO(
     produkId: string,
@@ -45,8 +51,9 @@ export class ProfitReportService {
     produkId: string;
     jumlah: number;
     harga: number;
-    produk: { tokoId: string };
+    produk: { tokoId: string; hargaBeli?: number | null };
     pesanan: { status: StatusPesananEcom };
+    isB2B?: boolean;
   }): Promise<TransaksiKeuntungan> {
     return this.createProfitTxUC.execute(itemPesanan);
   }

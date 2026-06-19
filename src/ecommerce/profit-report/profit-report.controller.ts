@@ -73,6 +73,7 @@ export class ProfitReportController {
   @ApiQuery({ name: "startDate", required: false, type: String })
   @ApiQuery({ name: "endDate", required: false, type: String })
   @ApiQuery({ name: "groupBy", required: false, type: String })
+  @ApiQuery({ name: "isB2B", required: false, type: Boolean })
   async getProfitSummary(
     @Param("tokoId") tokoId: string,
     @Query() filters: ProfitSummaryFiltersDto,
@@ -96,6 +97,22 @@ export class ProfitReportController {
     }
 
     return this.profitReportService.getProfitSummary(tokoId, filters);
+  }
+
+  /**
+   * Get global B2B summary for Admin
+   */
+  @Get("admin/b2b-summary")
+  @ApiQuery({ name: "startDate", required: false, type: String })
+  @ApiQuery({ name: "endDate", required: false, type: String })
+  async getAdminB2BSummary(
+    @Query() filters: { startDate?: string; endDate?: string },
+    @CurrentUser() user: any,
+  ) {
+    if (user.peran !== "SUPER_ADMIN" && user.peran !== "ADMIN_CS") {
+      throw new ForbiddenException("Hanya Admin yang dapat mengakses laporan ini");
+    }
+    return this.profitReportService.getAdminB2BSummary(filters);
   }
 
   /**

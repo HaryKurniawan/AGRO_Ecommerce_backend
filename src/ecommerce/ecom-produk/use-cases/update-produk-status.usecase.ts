@@ -2,12 +2,14 @@ import { Injectable } from "@nestjs/common";
 
 import { ProdukEcomsRepository } from "../repositories/ecom-produks.repository";
 import { FindProductByIdUseCase } from "./find-produk-by-id.usecase";
+import { RedisService } from "../../../infrastructure/redis/redis.service";
 
 @Injectable()
 export class UpdateProductStatusUseCase {
   constructor(
     private readonly productsRepo: ProdukEcomsRepository,
     private readonly findProductByIdUC: FindProductByIdUseCase,
+    private readonly redisService: RedisService,
   ) {}
 
   async execute(
@@ -15,7 +17,7 @@ export class UpdateProductStatusUseCase {
     status: "DRAFT" | "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK",
   ) {
     await this.findProductByIdUC.execute(id);
-    return this.productsRepo.update({
+    const result = await this.productsRepo.update({
       where: { id },
       data: { status },
       include: {
@@ -23,5 +25,10 @@ export class UpdateProductStatusUseCase {
         toko: { select: { id: true, nama: true } },
       },
     });
+
+    await this.redisService.getClient().del(`products:detail:${id}`);
+    await this.redisService.invalidateByPrefix("products:list");
+
+    return result;
   }
 }

@@ -19,7 +19,7 @@ export class GetTopProductsByTokoQuery {
       totalTerjual: number;
     }>
   > {
-    const where = {
+    const where: any = {
       tokoId,
       ...(filters.startDate && {
         tanggalTransaksi: {
@@ -34,6 +34,12 @@ export class GetTopProductsByTokoQuery {
         },
       }),
     };
+
+    if (filters.isB2B !== undefined) {
+      where.pesanan = {
+        isGrosir: filters.isB2B,
+      };
+    }
 
     const records = await this.prisma.transaksiKeuntungan.findMany({
       where,

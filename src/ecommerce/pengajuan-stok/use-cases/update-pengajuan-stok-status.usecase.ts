@@ -365,11 +365,6 @@ export class UpdatePengajuanStokStatusUseCase {
     }
 
     for (const pkg of packagesToProcess) {
-      const currentMargin =
-        product.marginPersen !== null ? product.marginPersen : marginDefault;
-      const hargaPerKemasan =
-        item.hargaGudang * pkg.ukuranKg * (1 + currentMargin / 100);
-
       await this.prisma.varianKemasan.upsert({
         where: {
           produkId_ukuranKg: {
@@ -380,13 +375,12 @@ export class UpdatePengajuanStokStatusUseCase {
         create: {
           produkId: product.id,
           ukuranKg: pkg.ukuranKg,
-          hargaPerKemasan: hargaPerKemasan,
+          biayaTambahan: 0, // Default no extra packaging fee
           stokKemasan: pkg.jumlahKemasan,
           isActive: true,
         },
         update: {
           stokKemasan: { increment: pkg.jumlahKemasan },
-          hargaPerKemasan: hargaPerKemasan,
         },
       });
     }

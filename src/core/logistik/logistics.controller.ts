@@ -43,18 +43,8 @@ export class LogisticsController {
     if (!config) {
       config = await this.logisticsRepo.createShippingConfig({
         data: {
-          jarakDasarKm: 5.0,
-          hargaDasar: 10000,
-          hargaPerKmExtra: 2000,
-          beratDasarKg: 5.0,
-          hargaPerKgExtra: 5000,
-          jarakMaksKm: 50.0,
           gratisBawahKm: 5.0,
           ongkirFlat: 15000,
-          gratisAboveKg: 300,
-          ekspedisiBaseCost: 20000,
-          ekspedisiPerKgCost: 8000,
-          ekspedisiPerKmCost: 1500,
         },
       });
     }

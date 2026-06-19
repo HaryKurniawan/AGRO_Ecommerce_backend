@@ -8,6 +8,7 @@ import { FindProfitTransactionsByProductQuery } from "./queries/find-profit-tran
 import { GetProfitSummaryByProductQuery } from "./queries/get-profit-summary-by-product.query";
 import { GetProfitSummaryByTokoQuery } from "./queries/get-profit-summary-by-toko.query";
 import { GetTopProductsByTokoQuery } from "./queries/get-top-products-by-toko.query";
+import { GetAdminB2BSummaryQuery } from "./queries/get-admin-b2b-summary.query";
 import { FindTransaksiByPesananQuery } from "./queries/find-transaksi-by-pesanan.query";
 import { CalculateFifoUseCase } from "./use-cases/calculate-fifo.usecase";
 import { CreateProfitTransactionUseCase } from "./use-cases/create-profit-transaction.usecase";
@@ -26,6 +27,7 @@ import { PrismaModule } from "../../infrastructure/database/prisma.module";
     GetProfitSummaryByProductQuery,
     GetProfitSummaryByTokoQuery,
     GetTopProductsByTokoQuery,
+    GetAdminB2BSummaryQuery,
     FindTransaksiByPesananQuery,
     CalculateFifoUseCase,
     CreateProfitTransactionUseCase,

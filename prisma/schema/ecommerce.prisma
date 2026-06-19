@@ -257,6 +257,7 @@ model PesananEcom {
   metodeKirim  String?           @default("LOKAL")
   paymentId    String?
   paymentUrl   String?
+  fotoSebelumKirimUrl String?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
@@ -472,6 +473,11 @@ model PengajuanStokToko {
   status         StatusPengajuanStok @default(DIAJUKAN)
   modePengemasan ModePengemasan      @default(DEFAULT)
   catatan        String?
+  isPesananGrosir Boolean            @default(false)
+  alamatKirim     String?
+  lat             Float?
+  lng             Float?
+  konsumenId      String?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
@@ -655,8 +661,8 @@ model TransaksiKeuntunganBatch {
 model VarianKemasan {
   id              String   @id @default(uuid())
   produkId        String
-  ukuranKg        Float    // 1.0, 2.5
-  hargaPerKemasan Float    // Harga jual per kemasan
+  ukuranKg        Float    // 1.0, 2.5, 10.0
+  biayaTambahan   Float    @default(0) // Biaya ekstra jika milih kemasan eceran/kecil
   stokKemasan     Int      @default(0)
   sku             String?  // SKU unik per varian
   isActive        Boolean  @default(true)

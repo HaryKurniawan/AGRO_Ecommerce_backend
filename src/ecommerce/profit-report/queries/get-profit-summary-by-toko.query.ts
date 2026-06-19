@@ -16,7 +16,7 @@ export class GetProfitSummaryByTokoQuery {
     totalHargaBeli: number;
     totalTransaksi: number;
   }> {
-    const where = {
+    const where: any = {
       tokoId,
       ...(filters.startDate && {
         tanggalTransaksi: {
@@ -31,6 +31,12 @@ export class GetProfitSummaryByTokoQuery {
         },
       }),
     };
+
+    if (filters.isB2B !== undefined) {
+      where.pesanan = {
+        isGrosir: filters.isB2B,
+      };
+    }
 
     const records = await this.prisma.transaksiKeuntungan.findMany({
       where,

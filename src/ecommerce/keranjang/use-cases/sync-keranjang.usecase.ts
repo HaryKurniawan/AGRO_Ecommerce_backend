@@ -2,12 +2,14 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { GetCartUseCase } from "./get-keranjang.usecase";
+import { RedisService } from "../../../infrastructure/redis/redis.service";
 
 @Injectable()
 export class SyncCartUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly getCartUC: GetCartUseCase,
+    private readonly redisService: RedisService,
   ) {}
 
   async execute(
@@ -41,40 +43,18 @@ export class SyncCartUseCase {
       }
     }
 
-    const keranjang: any = await this.getCartUC.execute(penggunaId);
+    const cartKey = `cart:${penggunaId}`;
+    const pipeline = this.redisService.getClient().pipeline();
 
-    return this.prisma.$transaction(async (tx) => {
-      for (const item of items) {
-        const varianId = item.varianKemasanId || null;
+    for (const item of items) {
+      const varianId = item.varianKemasanId || 'null';
+      const key = `${item.produkId}_${varianId}`;
+      pipeline.hincrby(cartKey, key, item.jumlah);
+    }
+    
+    pipeline.expire(cartKey, 604800); // 7 days
+    await pipeline.exec();
 
-        const existing = await tx.itemKeranjangEcom.findUnique({
-          where: {
-            keranjangId_produkId_varianKemasanId: {
-              keranjangId: keranjang.id,
-              produkId: item.produkId,
-              varianKemasanId: varianId,
-            },
-          },
-        });
-
-        if (existing) {
-          await tx.itemKeranjangEcom.update({
-            where: { id: existing.id },
-            data: { jumlah: existing.jumlah + item.jumlah },
-          });
-        } else {
-          await tx.itemKeranjangEcom.create({
-            data: {
-              keranjangId: keranjang.id,
-              produkId: item.produkId,
-              jumlah: item.jumlah,
-              varianKemasanId: varianId,
-            },
-          });
-        }
-      }
-
-      return this.getCartUC.execute(penggunaId);
-    });
+    return this.getCartUC.execute(penggunaId);
   }
 }

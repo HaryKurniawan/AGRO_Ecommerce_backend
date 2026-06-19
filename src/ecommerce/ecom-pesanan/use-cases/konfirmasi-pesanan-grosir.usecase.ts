@@ -9,6 +9,8 @@ import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository
 import { TokosRepository } from "../../toko/repositories/tokos.repository";
 import { ProdukEcomsRepository } from "../../ecom-produk/repositories/ecom-produks.repository";
 import { PengajuanStokRepository } from "../../pengajuan-stok/repositories/pengajuan-stok.repository";
+import { XenditService } from "../services/xendit.service";
+import { PrismaService } from "../../../infrastructure/database/prisma.service";
 
 @Injectable()
 export class KonfirmasiPesananGrosirUseCase {
@@ -19,6 +21,8 @@ export class KonfirmasiPesananGrosirUseCase {
     private readonly tokosRepo: TokosRepository,
     private readonly productsRepo: ProdukEcomsRepository,
     private readonly pengajuanStokRepo: PengajuanStokRepository,
+    private readonly xenditService: XenditService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(
@@ -88,6 +92,35 @@ export class KonfirmasiPesananGrosirUseCase {
     );
     const totalHarga = subtotal + ongkir;
 
+    let paymentId = undefined;
+    let paymentUrl = undefined;
+
+    const isOnlinePayment = !["COD", "MANUAL", "CASH"].includes(
+      pesanan.metodeBayar?.toUpperCase() || "",
+    );
+
+    if (isOnlinePayment) {
+      try {
+        const konsumen = await this.prisma.pengguna.findUnique({
+          where: { id: pesanan.konsumenId },
+          select: { nama: true, email: true },
+        });
+
+        const invoice = await this.xenditService.createInvoice({
+          externalId: pesanan.id,
+          amount: totalHarga,
+          payerEmail: konsumen?.email,
+          customerName: konsumen?.nama,
+          description: `Pembayaran Pesanan Grosir #${pesanan.id} - Agro Jabar`,
+        });
+
+        paymentId = pesanan.id;
+        paymentUrl = invoice.invoiceUrl;
+      } catch (xenditError) {
+        this.logger.error("Gagal membuat invoice Xendit", xenditError?.message);
+      }
+    }
+
     // Update pesanan → MENUNGGU_BAYAR (customer dapat invoice)
     const updated = await this.ordersRepo.update({
       where: { id: pesananId },
@@ -99,6 +132,8 @@ export class KonfirmasiPesananGrosirUseCase {
         catatan: data.catatanSeller
           ? `${pesanan.catatan || ""}\nCatatan Seller: ${data.catatanSeller}`
           : pesanan.catatan,
+        paymentId,
+        paymentUrl,
       },
     });
 

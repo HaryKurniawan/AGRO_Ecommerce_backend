@@ -17,12 +17,14 @@ import {
 
 import { ChatRepository } from "../repositories/chat.repository";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { RedisService } from "../../../infrastructure/redis/redis.service";
 
 @Injectable()
 export class SendPesanChatUseCase {
   constructor(
     private readonly chatRepo: ChatRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly redisService: RedisService,
   ) {}
 
   async execute(
@@ -59,6 +61,12 @@ export class SendPesanChatUseCase {
       conversationId: percakapanId,
       message,
     });
+
+    // Invalidate unread cache for the recipient
+    const recipientId = conversation.partisipanA === pengirimId ? conversation.partisipanB : conversation.partisipanA;
+    if (recipientId) {
+      await this.redisService.getClient().del(`chat:unread:${recipientId}`);
+    }
 
     return message;
   }

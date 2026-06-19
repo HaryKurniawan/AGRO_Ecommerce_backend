@@ -62,18 +62,8 @@ export class CalculateShippingCostsUseCase {
     if (!config) {
       config = await this.logisticsRepo.createShippingConfig({
         data: {
-          jarakDasarKm: 5.0,
-          hargaDasar: 10000,
-          hargaPerKmExtra: 2000,
-          beratDasarKg: 5.0,
-          hargaPerKgExtra: 5000,
-          jarakMaksKm: 50.0,
           gratisBawahKm: 5.0,
           ongkirFlat: 15000,
-          gratisAboveKg: 300,
-          ekspedisiBaseCost: 20000,
-          ekspedisiPerKgCost: 8000,
-          ekspedisiPerKmCost: 1500,
         },
       });
     }
@@ -155,6 +145,8 @@ export class CalculateShippingCostsUseCase {
           : isFreeShipping
             ? `Gratis ongkir (jarak ${distanceKm.toFixed(1)} km)`
             : `Ongkir Rp ${ongkirFlat.toLocaleString("id-ID")} (jarak ${distanceKm.toFixed(1)} km)`;
+
+
 
         return {
           tokoId: toko.id,

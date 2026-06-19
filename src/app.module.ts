@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule , ConfigService } from "@nestjs/config";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
+import { ThrottlerStorageRedisService } from "nestjs-throttler-storage-redis";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 
@@ -16,6 +17,7 @@ import jwtConfig from "./config/jwt.config";
 import { PrismaModule } from "./infrastructure/database/prisma.module";
 import { LoggerModule } from "./infrastructure/logger/logger.module";
 import { MonitoringModule } from "./infrastructure/monitoring/monitoring.module";
+import { RedisModule } from "./infrastructure/redis/redis.module";
 // Core Modules
 import { AuthModule } from "./core/auth/auth.module";
 import { UsersModule } from "./core/pengguna/pengguna.module";
@@ -56,21 +58,33 @@ import { DeliveryBatchModule } from "./ecommerce/delivery-batch/delivery-batch.m
     EventEmitterModule.forRoot(),
 
     // Rate Limiting (OWASP A04)
-    ThrottlerModule.forRoot([
-      {
-        name: "short",
-        ttl: 1000, // 1 detik
-        limit: 20, // Max 20 request/detik per IP
-      },
-      {
-        name: "medium",
-        ttl: 60000, // 1 menit
-        limit: 300, // Max 300 request/menit per IP
-      },
-    ]),
+    // Rate Limiting (OWASP A04) with Redis
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            name: "short",
+            ttl: 1000, // 1 detik
+            limit: 20, // Max 20 request/detik per IP
+          },
+          {
+            name: "medium",
+            ttl: 60000, // 1 menit
+            limit: 300, // Max 300 request/menit per IP
+          },
+        ],
+        storage: new ThrottlerStorageRedisService({
+          host: config.get<string>("REDIS_HOST") || "127.0.0.1",
+          port: config.get<number>("REDIS_PORT") || 6379,
+        }),
+      }),
+    }),
 
     // Infrastructure
     PrismaModule,
+    RedisModule,
     LoggerModule,
     MonitoringModule,
 

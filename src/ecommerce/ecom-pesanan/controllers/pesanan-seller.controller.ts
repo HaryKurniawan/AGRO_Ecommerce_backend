@@ -61,7 +61,7 @@ export class PesananSellerController {
     @Param("id") id: string,
     @Body() payload: UpdatePesananStatusDto,
   ): Promise<any> {
-    return this.updateOrderStatusUC.execute(id, payload.status);
+    return this.updateOrderStatusUC.execute(id, payload.status, payload.fotoSebelumKirimUrl);
   }
 
   @UseGuards(JwtAuthGuard)

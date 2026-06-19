@@ -2,12 +2,14 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 
 import { ProdukEcomsRepository } from "../repositories/ecom-produks.repository";
 import { FindProductByIdUseCase } from "./find-produk-by-id.usecase";
+import { RedisService } from "../../../infrastructure/redis/redis.service";
 
 @Injectable()
 export class UpdateStockUseCase {
   constructor(
     private readonly productsRepo: ProdukEcomsRepository,
     private readonly findProductByIdUC: FindProductByIdUseCase,
+    private readonly redisService: RedisService,
   ) {}
 
   async execute(
@@ -60,6 +62,9 @@ export class UpdateStockUseCase {
         catatan: data.catatan,
       },
     });
+
+    await this.redisService.getClient().del(`products:detail:${id}`);
+    await this.redisService.invalidateByPrefix("products:list");
 
     return updated;
   }
