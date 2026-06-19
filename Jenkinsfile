@@ -100,7 +100,6 @@ pipeline {
 
     post {
         always {
-            dependencyCheckPublisher pattern: 'dependency-check-report/dependency-check-report.json'
             archiveArtifacts artifacts: 'dependency-check-report/*.html', allowEmptyArchive: true
         }
 
