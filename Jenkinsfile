@@ -17,13 +17,16 @@ pipeline {
                     fi
                     
                     echo "Running OWASP Dependency-Check for Backend..."
-                    dependency-check.sh \
-                        --project "Ecommerce Backend" \
-                        --scan . \
-                        --nvdApiKey $NVD_API_KEY \
-                        --format "HTML" \
-                        --format "JSON" \
-                        --out dependency-check-report
+                    docker run --rm \\
+                        -u \$(id -u):\$(id -g) \\
+                        -v "\$(pwd):/src" \\
+                        owasp/dependency-check:latest \\
+                        --project "Ecommerce Backend" \\
+                        --scan /src \\
+                        --nvdApiKey \$NVD_API_KEY \\
+                        --format "HTML" \\
+                        --format "JSON" \\
+                        --out /src/dependency-check-report
                     '''
                 }
             }
