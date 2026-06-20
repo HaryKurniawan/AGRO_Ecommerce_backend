@@ -176,9 +176,8 @@ export class AuthController {
     }
   }
 
-  private getFrontendUrl(origin: string): string {
-    if (origin === "farmer") return "http://localhost:3001";
-    if (origin === "agro-core") return "http://localhost:3004";
-    return process.env.FRONTEND_URL || "http://localhost:3003";
+  private getFrontendUrl(origin: string): string {;
+    if (origin === "agro-core") return process.env.AGRO_CORE_FRONTEND_URL;
+    return process.env.FRONTEND_URL;
   }
 }
