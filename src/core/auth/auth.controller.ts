@@ -176,8 +176,8 @@ export class AuthController {
     }
   }
 
-  private getFrontendUrl(origin: string): string {;
-    if (origin === "agro-core") return process.env.AGRO_CORE_FRONTEND_URL;
+  private getFrontendUrl(origin: string): string {
+    if (origin === "agro-core") return process.env.FRONTEND_OPERASIONAL_URL || process.env.AGRO_CORE_FRONTEND_URL;
     return process.env.FRONTEND_URL;
   }
 }
