@@ -40,6 +40,7 @@ import { ProfitReportModule } from "./ecommerce/profit-report/profit-report.modu
 import { AnalyticsModule } from "./ecommerce/analytics/analytics.module";
 import { MasterKomoditasModule } from "./ecommerce/master-komoditas/master-komoditas.module";
 import { GudangModule } from "./ecommerce/gudang/gudang.module";
+import { BannerModule } from "./ecommerce/banner/banner.module";
 
 // Other
 import { UploadModule } from "./core/unggah-foto/upload.module";
@@ -112,6 +113,7 @@ import { DeliveryBatchModule } from "./ecommerce/delivery-batch/delivery-batch.m
     GudangModule,
     ProfitReportModule,
     AnalyticsModule,
+    BannerModule,
 
     // Other
     UploadModule,

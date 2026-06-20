@@ -750,3 +750,20 @@ enum StatusItemBatch {
 
   @@schema("ecommerce")
 }
+
+// ─── Banner Promo (Home Page) ────────────────────────────────────────────────
+model BannerPromo {
+  id        String   @id @default(uuid())
+  judul     String
+  subjudul  String?
+  imageUrl  String?
+  gradient  String?
+  linkUrl   String?
+  urutan    Int      @default(0)
+  isAktif   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ecom_banner_promos")
+  @@schema("ecommerce")
+}

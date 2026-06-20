@@ -93,10 +93,7 @@ pipeline {
             steps {
                 sh '''
                 echo "Running Prisma DB Push..."
-                docker exec agro-backend npx prisma db push --accept-data-loss
-                
-                echo "Running Prisma Database Seed..."
-                docker exec agro-backend npx prisma db seed
+                docker exec agro-backend npx prisma db push
                 '''
             }
         }
