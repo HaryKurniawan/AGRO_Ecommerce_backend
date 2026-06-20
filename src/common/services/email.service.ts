@@ -17,12 +17,16 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private readonly fromEmail: string;
   private readonly frontendUrl: string;
+  private readonly frontendOperasionalUrl: string;
 
   constructor(private readonly config: ConfigService) {
     this.resend = new Resend(this.config.getOrThrow<string>("RESEND_API_KEY"));
     this.fromEmail =
       this.config.get<string>("EMAIL_FROM") || "noreply@agrojabar.id";
     this.frontendUrl = this.config.getOrThrow<string>("FRONTEND_URL");
+    this.frontendOperasionalUrl = this.config.getOrThrow<string>(
+      "FRONTEND_OPERASIONAL_URL",
+    );
   }
 
   async sendAdminCreatedWelcomeEmail(
@@ -33,7 +37,7 @@ export class EmailService {
     noTelepon: string | null | undefined,
     token: string,
   ): Promise<void> {
-    const verifyUrl = `${this.frontendUrl}/register/verify-confirm?token=${token}`;
+    const verifyUrl = `${this.frontendOperasionalUrl}/register/verify-confirm?token=${token}`;
     const template = getAdminWelcomeTemplate(
       nama,
       email,
@@ -62,8 +66,11 @@ export class EmailService {
     email: string,
     token: string,
     nama: string,
+    peran: string = "KONSUMEN",
   ): Promise<void> {
-    const verifyUrl = `${this.frontendUrl}/register/verify-confirm?token=${token}`;
+    const baseUrl =
+      peran === "KONSUMEN" ? this.frontendUrl : this.frontendOperasionalUrl;
+    const verifyUrl = `${baseUrl}/register/verify-confirm?token=${token}`;
     const template = getEmailVerificationTemplate(nama, verifyUrl);
 
     try {
@@ -82,8 +89,11 @@ export class EmailService {
     email: string,
     token: string,
     nama: string,
+    peran: string = "KONSUMEN",
   ): Promise<void> {
-    const resetUrl = `${this.frontendUrl}/forgot-password/reset?token=${token}`;
+    const baseUrl =
+      peran === "KONSUMEN" ? this.frontendUrl : this.frontendOperasionalUrl;
+    const resetUrl = `${baseUrl}/forgot-password/reset?token=${token}`;
     const template = getPasswordResetTemplate(nama, resetUrl);
 
     try {

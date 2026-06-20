@@ -40,6 +40,7 @@ export class ForgotPasswordUseCase {
       pengguna.email,
       resetToken,
       pengguna.nama || pengguna.email,
+      pengguna.peran,
     );
 
     return { message: "Jika email terdaftar, instruksi reset telah dikirim." };

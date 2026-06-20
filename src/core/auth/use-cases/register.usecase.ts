@@ -57,6 +57,7 @@ export class RegisterUseCase {
       pengguna.email,
       verifyToken,
       pengguna.nama || pengguna.email,
+      pengguna.peran,
     );
 
     // Kembalikan info tanpa accessToken — pengguna harus verifikasi dulu

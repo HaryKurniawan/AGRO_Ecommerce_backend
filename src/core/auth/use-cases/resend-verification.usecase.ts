@@ -44,6 +44,7 @@ export class ResendVerificationUseCase {
       pengguna.email,
       verifyToken,
       pengguna.nama || pengguna.email,
+      pengguna.peran,
     );
 
     return {

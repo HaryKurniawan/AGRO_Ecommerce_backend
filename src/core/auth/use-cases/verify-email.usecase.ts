@@ -73,7 +73,7 @@ export class VerifyEmailUseCase {
 
         // Kirim email selamat dengan info login
         const frontendUrl =
-          this.configService.get<string>("FRONTEND_URL") || "";
+          this.configService.get<string>("FRONTEND_OPERASIONAL_URL") || "";
         const loginUrl = `${frontendUrl}/login`;
         const namaToko = pengguna.profilPenjual.namaToko;
         const alamatToko = pengguna.profilPenjual.alamat;
