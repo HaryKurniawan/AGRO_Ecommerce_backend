@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { BullModule } from "@nestjs/bullmq";
 
 import { FindCourierTasksUseCase } from "./use-cases/find-courier-tasks.usecase";
 import { PesananCustomerController } from "./controllers/pesanan-customer.controller";
@@ -37,6 +38,7 @@ import { LogisticsModule } from "../../core/logistik/logistics.module";
 import { NotificationsModule } from "../../core/notifikasi/notifikasis.module";
 import { ProfitReportModule } from "../profit-report/profit-report.module";
 import { PengajuanStokModule } from "../pengajuan-stok/pengajuan-stok.module";
+import { OrderProcessor } from "./queue/order.processor";
 
 @Module({
   imports: [
@@ -48,6 +50,9 @@ import { PengajuanStokModule } from "../pengajuan-stok/pengajuan-stok.module";
     NotificationsModule,
     ProfitReportModule,
     PengajuanStokModule,
+    BullModule.registerQueue({
+      name: "order",
+    }),
   ],
 
   controllers: [
@@ -82,6 +87,7 @@ import { PengajuanStokModule } from "../pengajuan-stok/pengajuan-stok.module";
     SellerConfirmOrderUseCase,
     AutoConfirmOrderService,
     XenditService,
+    OrderProcessor,
   ],
   exports: [PesananEcomsRepository],
 })

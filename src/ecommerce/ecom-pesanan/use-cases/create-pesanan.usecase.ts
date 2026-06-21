@@ -1,4 +1,6 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 
 import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository";
 import { ProdukEcomsRepository } from "../../ecom-produk/repositories/ecom-produks.repository";
@@ -23,6 +25,7 @@ export class CreateOrderUseCase {
     private readonly notificationsService: NotificationsService,
     private readonly profitReportService: ProfitReportService,
     private readonly xenditService: XenditService,
+    @InjectQueue("order") private readonly orderQueue: Queue,
   ) {}
 
   async execute(
@@ -449,6 +452,19 @@ export class CreateOrderUseCase {
           "[CreateOrderUseCase] Xendit creation failed:",
           xenditError?.message,
         );
+      }
+      
+      // Jadwalkan auto-cancel order setelah 24 jam untuk semua pesanan yang dibuat
+      for (const order of createdOrders) {
+        try {
+          await this.orderQueue.add(
+            "cancelUnpaidOrder",
+            { orderId: order.id },
+            { delay: 24 * 60 * 60 * 1000 }, // 24 hours
+          );
+        } catch (err) {
+          console.error(`Failed to schedule auto-cancel for order ${order.id}:`, err);
+        }
       }
     }
     // ============================================

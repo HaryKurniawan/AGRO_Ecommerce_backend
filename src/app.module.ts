@@ -4,6 +4,7 @@ import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { ThrottlerStorageRedisService } from "nestjs-throttler-storage-redis";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
+import { BullModule } from "@nestjs/bullmq";
 
 import { TransformInterceptor } from "./common/interceptors/transform.interceptor";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
@@ -80,6 +81,18 @@ import { DeliveryBatchModule } from "./ecommerce/delivery-batch/delivery-batch.m
           host: config.get<string>("REDIS_HOST") || "127.0.0.1",
           port: config.get<number>("REDIS_PORT") || 6379,
         }),
+      }),
+    }),
+
+    // Background Jobs (BullMQ)
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>("REDIS_HOST") || "127.0.0.1",
+          port: configService.get<number>("REDIS_PORT") || 6379,
+        },
       }),
     }),
 

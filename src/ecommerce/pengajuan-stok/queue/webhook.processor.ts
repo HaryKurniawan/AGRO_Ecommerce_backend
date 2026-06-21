@@ -1,56 +1,38 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
+import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { Job } from "bullmq";
 
-@Injectable()
-export class WebhookQueueService {
-  private readonly logger = new Logger(WebhookQueueService.name);
+@Processor("webhook")
+export class WebhookProcessor extends WorkerHost {
+  private readonly logger = new Logger(WebhookProcessor.name);
 
-  async add(name: string, data: any, options?: any) {
-    this.logger.debug(`Adding webhook job ${name} to in-memory queue`);
-    // Execute asynchronously and retry if fails
-    this.executeWithRetry(
-      data,
-      options?.attempts || 5,
-      options?.backoff?.delay || 2000,
-    );
+  async process(job: Job) {
+    if (job.name === "sendWebhook") {
+      await this.handleSendWebhook(job);
+    }
   }
 
-  private async executeWithRetry(
-    data: any,
-    attemptsLeft: number,
-    delayMs: number,
-  ) {
-    const { url, payload, headers } = data;
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: headers || {
-          "Content-Type": "application/json",
-          "x-api-key":
-            process.env.ECOMMERCE_API_KEY ||
-            "ecommerce-nestjs-to-gudang-express-secure-key",
-        },
-        body: JSON.stringify(payload),
-      });
+  private async handleSendWebhook(job: Job) {
+    this.logger.debug(`Processing webhook job ${job.id}`);
+    const { url, payload, headers } = job.data;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP Error ${response.status}: ${errorText}`);
-      }
+    const response = await fetch(url, {
+      method: "POST",
+      headers: headers || {
+        "Content-Type": "application/json",
+        "x-api-key":
+          process.env.ECOMMERCE_API_KEY ||
+          "ecommerce-nestjs-to-gudang-express-secure-key",
+      },
+      body: JSON.stringify(payload),
+    });
 
-      this.logger.log(`Webhook successfully sent to ${url}`);
-    } catch (error: any) {
-      this.logger.error(
-        `Failed to process webhook (attempts left: ${attemptsLeft - 1}): ${error.message}`,
-      );
-      if (attemptsLeft > 1) {
-        setTimeout(() => {
-          this.executeWithRetry(data, attemptsLeft - 1, delayMs * 2);
-        }, delayMs);
-      } else {
-        this.logger.error(
-          `Webhook permanently failed after all attempts: ${url}`,
-        );
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      this.logger.error(`Webhook failed: HTTP ${response.status} - ${errorText}`);
+      throw new Error(`HTTP Error ${response.status}: ${errorText}`);
     }
+
+    this.logger.log(`Webhook successfully sent to ${url}`);
   }
 }

@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { BullModule } from "@nestjs/bullmq";
 
 import {
   PengajuanStokController,
@@ -15,10 +16,23 @@ import { FindProductHistoryUseCase } from "./use-cases/find-product-history.usec
 import { TokosRepository } from "../toko/repositories/tokos.repository";
 import { ProdukEcomsRepository } from "../ecom-produk/repositories/ecom-produks.repository";
 import { StokMasukModule } from "../stok-masuk/stok-masuk.module";
-import { WebhookQueueService } from "./queue/webhook.processor";
+import { WebhookProcessor } from "./queue/webhook.processor";
+import { WebhookQueueService } from "./queue/webhook-queue.service";
 
 @Module({
-  imports: [StokMasukModule],
+  imports: [
+    StokMasukModule,
+    BullModule.registerQueue({
+      name: "webhook",
+      defaultJobOptions: {
+        attempts: 5,
+        backoff: {
+          type: "exponential",
+          delay: 2000,
+        },
+      },
+    }),
+  ],
   controllers: [PengajuanStokController, PengajuanStokWebhookController],
   providers: [
     PengajuanStokRepository,
@@ -32,6 +46,7 @@ import { WebhookQueueService } from "./queue/webhook.processor";
     FindAllPengajuanStokAdminUseCase,
     FindProductHistoryUseCase,
     WebhookQueueService,
+    WebhookProcessor,
   ],
   exports: [PengajuanStokRepository, WebhookQueueService],
 })
