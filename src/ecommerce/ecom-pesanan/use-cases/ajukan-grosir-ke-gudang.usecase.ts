@@ -9,7 +9,7 @@ import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository
 import { TokosRepository } from "../../toko/repositories/tokos.repository";
 import { PengajuanStokRepository } from "../../pengajuan-stok/repositories/pengajuan-stok.repository";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
-import { WebhookQueueService } from "../../pengajuan-stok/queue/webhook.processor";
+import { WebhookQueueService } from "../../pengajuan-stok/queue/webhook-queue.service";
 
 @Injectable()
 export class AjukanGrosirKeGudangUseCase {

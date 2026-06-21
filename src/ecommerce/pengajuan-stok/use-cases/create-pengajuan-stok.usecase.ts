@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 
 import { PengajuanStokRepository } from "../repositories/pengajuan-stok.repository";
 import { TokosRepository } from "../../toko/repositories/tokos.repository";
-import { WebhookQueueService } from "../queue/webhook.processor";
+import { WebhookQueueService } from "../queue/webhook-queue.service";
 
 @Injectable()
 export class CreatePengajuanStokUseCase {
