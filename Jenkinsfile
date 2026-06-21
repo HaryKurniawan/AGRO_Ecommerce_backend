@@ -36,25 +36,19 @@ pipeline {
         //     }
         // }
 
-        stage('Unit Test & Coverage') {
-            steps {
-                echo "Running Unit Tests and generating Coverage Report..."
-                // Menggunakan container node sementara untuk menjalankan vitest
-                sh '''
-                docker run --rm \
-                    -u $(id -u):$(id -g) \
-                    -v "$(pwd):/app" \
-                    -w /app \
-                    node:20-alpine \
-                    sh -c "npm install && npm run test:coverage"
-                '''
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh '''
                 docker build -t agro-backend .
+                '''
+            }
+        }
+
+        stage('Unit Test & Coverage') {
+            steps {
+                echo "Running Unit Tests and generating Coverage Report inside the built image..."
+                sh '''
+                docker run --rm agro-backend npm run test:coverage
                 '''
             }
         }
