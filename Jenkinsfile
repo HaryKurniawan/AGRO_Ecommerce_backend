@@ -36,19 +36,28 @@ pipeline {
         //     }
         // }
 
-        stage('Build Docker Image') {
+        stage('Unit Test & Coverage') {
             steps {
+                echo "Running Unit Tests via temporary Docker build..."
                 sh '''
-                docker build -t agro-backend .
+                cat << 'EOF' > Dockerfile.test
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run test:coverage
+EOF
+                docker build -t agro-backend-test -f Dockerfile.test .
+                rm Dockerfile.test
                 '''
             }
         }
 
-        stage('Unit Test & Coverage') {
+        stage('Build Docker Image') {
             steps {
-                echo "Running Unit Tests and generating Coverage Report inside the built image..."
                 sh '''
-                docker run --rm agro-backend npm run test:coverage
+                docker build -t agro-backend .
                 '''
             }
         }
