@@ -38,18 +38,36 @@ pipeline {
 
         stage('Unit Test & Coverage') {
             steps {
-                echo "Running Unit Tests via temporary Docker build..."
+                echo "Building Test Environment..."
                 sh '''
                 cat << 'EOF' > Dockerfile.test
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run test:coverage
 EOF
                 docker build -t agro-backend-test -f Dockerfile.test .
                 rm Dockerfile.test
+                '''
+                
+                echo "Running Unit Tests and Extracting Reports..."
+                sh '''
+                # Jalankan test di dalam container dan abaikan error sementara agar bisa extract report
+                docker run --name test-run-container agro-backend-test npm run test:coverage || true
+                
+                # Tarik keluar folder coverage yang berisi laporan HTML, JUnit, dan Cobertura ke workspace Jenkins
+                rm -rf ./coverage
+                docker cp test-run-container:/app/coverage ./coverage || true
+                
+                # Ambil status exit code asli dari test
+                EXIT_CODE=$(docker inspect test-run-container --format='{{.State.ExitCode}}')
+                docker rm test-run-container
+                
+                if [ "$EXIT_CODE" != "0" ]; then
+                    echo "Unit tests failed!"
+                    exit $EXIT_CODE
+                fi
                 '''
             }
         }
@@ -120,6 +138,8 @@ EOF
     post {
         always {
             archiveArtifacts artifacts: 'dependency-check-report/*.html', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'coverage/**', allowEmptyArchive: true
+            junit testResults: 'coverage/junit.xml', allowEmptyResults: true
         }
 
         success {

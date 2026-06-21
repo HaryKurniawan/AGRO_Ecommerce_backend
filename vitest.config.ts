@@ -8,12 +8,16 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['__tests__/**/*.{test,spec}.ts'],
+    reporters: ['default', 'junit'],
+    outputFile: {
+      junit: './coverage/junit.xml'
+    },
     alias: {
       '@api': path.resolve(__dirname, './src'),
     },
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text', 'html', 'cobertura'],
       reportsDirectory: './coverage',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.module.ts', 'src/**/*.controller.ts', 'src/main.ts'],
