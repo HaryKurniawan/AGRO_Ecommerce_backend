@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsEnum, Min } from "class-validator";
+import { IsString, IsNumber, IsOptional, IsEnum, Min, IsArray } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
 export class UpdateProductDto {
@@ -23,6 +23,11 @@ export class UpdateProductDto {
   @IsOptional()
   harga?: number;
 
+  @ApiPropertyOptional({ description: "Stok produk (diabaikan, update lewat endpoint stock)" })
+  @IsNumber()
+  @IsOptional()
+  stok?: number;
+
   @ApiPropertyOptional({ description: "Harga asli sebelum diskon" })
   @IsNumber()
   @Min(0)
@@ -43,6 +48,8 @@ export class UpdateProductDto {
 
   @ApiPropertyOptional({ description: "Foto tambahan produk (array of URLs)" })
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   fotoLainnya?: string[];
 
   @ApiPropertyOptional({ description: "Kandungan nutrisi produk" })

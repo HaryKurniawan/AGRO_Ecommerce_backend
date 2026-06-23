@@ -7,7 +7,7 @@ import importPlugin from 'eslint-plugin-import'
 import noSecrets from 'eslint-plugin-no-secrets'
 
 export default tseslint.config(
-  { ignores: ['dist', 'eslint.config.js', 'node_modules'] },
+  { ignores: ['dist', 'eslint.config.js', 'node_modules', '__tests__', 'coverage'] },
   {
     files: ['**/*.ts'],
     plugins: {
