@@ -12,7 +12,7 @@ describe("CreateOrderUseCase", () => {
   let calcShippingUCMock: any;
   let notificationsServiceMock: any;
   let profitReportServiceMock: any;
-  let xenditServiceMock: any;
+  let midtransServiceMock: any;
   let orderQueueMock: any;
 
   beforeEach(() => {
@@ -55,8 +55,8 @@ describe("CreateOrderUseCase", () => {
       createProfitTransaction: vi.fn()
     };
 
-    xenditServiceMock = {
-      createVirtualAccount: vi.fn()
+    midtransServiceMock = {
+      createTransaction: vi.fn()
     };
 
     orderQueueMock = {
@@ -72,7 +72,7 @@ describe("CreateOrderUseCase", () => {
       calcShippingUCMock as any,
       notificationsServiceMock as any,
       profitReportServiceMock as any,
-      xenditServiceMock as any,
+      midtransServiceMock as any,
       orderQueueMock as any
     );
   });
@@ -149,9 +149,9 @@ describe("CreateOrderUseCase", () => {
       email: "budi@test.com"
     });
 
-    xenditServiceMock.createVirtualAccount.mockResolvedValue({
-      vaId: "va-123",
-      accountNumber: "1234567890"
+    midtransServiceMock.createTransaction.mockResolvedValue({
+      token: "midtrans-token-123",
+      redirectUrl: "https://midtrans.com/pay"
     });
 
     ordersRepoMock.findCartByCustomerId.mockResolvedValue({ id: "cart-1" });
@@ -173,11 +173,10 @@ describe("CreateOrderUseCase", () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("order-1");
     
-    // Check if Xendit was called
-    expect(xenditServiceMock.createVirtualAccount).toHaveBeenCalledWith(
+    // Check if Midtrans was called
+    expect(midtransServiceMock.createTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
-        bankCode: "BCA",
-        expectedAmount: 60000
+        amount: 60000
       })
     );
 
