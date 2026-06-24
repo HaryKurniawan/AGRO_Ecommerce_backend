@@ -9,7 +9,7 @@ import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository
 import { TokosRepository } from "../../toko/repositories/tokos.repository";
 import { ProdukEcomsRepository } from "../../ecom-produk/repositories/ecom-produks.repository";
 import { PengajuanStokRepository } from "../../pengajuan-stok/repositories/pengajuan-stok.repository";
-import { XenditService } from "../services/xendit.service";
+import { MidtransService } from "../services/midtrans.service";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 
 @Injectable()
@@ -21,7 +21,7 @@ export class KonfirmasiPesananGrosirUseCase {
     private readonly tokosRepo: TokosRepository,
     private readonly productsRepo: ProdukEcomsRepository,
     private readonly pengajuanStokRepo: PengajuanStokRepository,
-    private readonly xenditService: XenditService,
+    private readonly midtransService: MidtransService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -103,21 +103,38 @@ export class KonfirmasiPesananGrosirUseCase {
       try {
         const konsumen = await this.prisma.pengguna.findUnique({
           where: { id: pesanan.konsumenId },
-          select: { nama: true, email: true },
+          select: { nama: true, email: true, noTelepon: true },
         });
 
-        const invoice = await this.xenditService.createInvoice({
+        const itemDetails = pesanan.item.map((item) => ({
+          id: item.produkId,
+          price: item.harga,
+          quantity: item.jumlah,
+          name: item.produk?.nama?.substring(0, 50) || "Produk",
+        }));
+
+        if (ongkir > 0) {
+          itemDetails.push({
+            id: `ONGKIR-${pesanan.id}`,
+            price: ongkir,
+            quantity: 1,
+            name: "Ongkos Kirim",
+          });
+        }
+
+        const midtransTx = await this.midtransService.createTransaction({
           externalId: pesanan.id,
           amount: totalHarga,
           payerEmail: konsumen?.email,
           customerName: konsumen?.nama,
-          description: `Pembayaran Pesanan Grosir #${pesanan.id} - Agro Jabar`,
+          customerPhone: konsumen?.noTelepon,
+          itemDetails: itemDetails
         });
 
-        paymentId = pesanan.id;
-        paymentUrl = invoice.invoiceUrl;
-      } catch (xenditError) {
-        this.logger.error("Gagal membuat invoice Xendit", xenditError?.message);
+        paymentId = midtransTx.token;
+        paymentUrl = midtransTx.redirectUrl;
+      } catch (midtransError) {
+        this.logger.error("Gagal membuat transaksi Midtrans", midtransError?.message);
       }
     }
 
