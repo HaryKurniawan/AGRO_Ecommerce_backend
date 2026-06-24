@@ -81,7 +81,12 @@ export class MidtransService {
             email: payload.payerEmail,
             phone: payload.customerPhone,
           },
-          item_details: payload.itemDetails
+          item_details: payload.itemDetails,
+          callbacks: {
+            finish: `${this.configService.get("FRONTEND_URL")}/pesanan?payment=success`,
+            error: `${this.configService.get("FRONTEND_URL")}/pesanan?payment=failed`,
+            unfinish: `${this.configService.get("FRONTEND_URL")}/pesanan?payment=pending`,
+          }
         },
         this.axiosConfig
       );
