@@ -9,7 +9,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { CalculateShippingCostsUseCase } from "../../../core/logistik/use-cases/calculate-shipping-costs.usecase";
 import { NotificationsService } from "../../../core/notifikasi/notifikasis.service";
 import { ProfitReportService } from "../../profit-report/profit-report.service";
-import { XenditService } from "../services/xendit.service";
+import { MidtransService } from "../services/midtrans.service";
 
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 
@@ -24,7 +24,7 @@ export class CreateOrderUseCase {
     private readonly calcShippingUC: CalculateShippingCostsUseCase,
     private readonly notificationsService: NotificationsService,
     private readonly profitReportService: ProfitReportService,
-    private readonly xenditService: XenditService,
+    private readonly midtransService: MidtransService,
     @InjectQueue("order") private readonly orderQueue: Queue,
   ) {}
 
@@ -353,14 +353,14 @@ export class CreateOrderUseCase {
       });
     }
 
-    // ========== XENDIT PAYMENT GATEWAY ==========
-    // SEMUA transaksi WAJIB menggunakan Payment Gateway Xendit
+    // ========== MIDTRANS PAYMENT GATEWAY ==========
+    // SEMUA transaksi WAJIB menggunakan Payment Gateway Midtrans
     if (createdOrders.length > 0) {
       try {
         // Ambil data konsumen untuk email
         const konsumen = await this.prisma.pengguna.findUnique({
           where: { id: penggunaId },
-          select: { nama: true, email: true },
+          select: { nama: true, email: true, noTelepon: true },
         });
 
         // Total dari semua pesanan
@@ -374,63 +374,38 @@ export class CreateOrderUseCase {
           .map((o) => o.id)
           .join("-");
 
-        const paymentMethodUpper = data.metodeBayar?.toUpperCase();
-        let finalPaymentUrl = "";
-        let finalPaymentId = "";
-
-        // 1. Virtual Account (BCA_VA, BRI_VA, MANDIRI_VA)
-        if (paymentMethodUpper.endsWith("_VA")) {
-          const bankCode = paymentMethodUpper.split("_")[0]; // "BCA", "BRI", "MANDIRI"
-          
-          const va = await this.xenditService.createVirtualAccount({
-            externalId,
-            bankCode,
-            name: konsumen?.nama || "Pelanggan Agro Jabar",
-            expectedAmount: grandTotal,
-          });
-
-          finalPaymentId = va.vaId;
-          finalPaymentUrl = va.accountNumber; // Simpan accountNumber sbg paymentUrl
-        } 
-        // 2. QRIS
-        else if (paymentMethodUpper === "QRIS") {
-          const qr = await this.xenditService.createQrCode({
-            externalId,
-            amount: grandTotal,
-          });
-
-          finalPaymentId = qr.qrId;
-          finalPaymentUrl = qr.qrString; // Simpan QR String sbg paymentUrl
+        // Format item details untuk Midtrans
+        const itemDetails = [];
+        for (const order of createdOrders) {
+          for (const item of order.item) {
+            itemDetails.push({
+              id: item.produkId,
+              price: item.harga,
+              quantity: item.jumlah,
+              name: item.produk?.nama?.substring(0, 50) || "Produk",
+            });
+          }
+          if (order.ongkir > 0) {
+            itemDetails.push({
+              id: `ONGKIR-${order.id}`,
+              price: order.ongkir,
+              quantity: 1,
+              name: "Ongkos Kirim",
+            });
+          }
         }
-        // 3. E-Wallet (OVO, DANA)
-        else if (["OVO", "DANA"].includes(paymentMethodUpper)) {
-          const channelCode = `ID_${paymentMethodUpper}`; // "ID_OVO", "ID_DANA"
-          
-          const ewallet = await this.xenditService.createEWalletCharge({
-            externalId,
-            amount: grandTotal,
-            channelCode,
-            mobileNumber: data.mobileNumber, // Penting untuk OVO
-          });
 
-          finalPaymentId = ewallet.chargeId;
-          // Untuk OVO, checkoutUrl biasanya kosong karena Push Notif. 
-          // Untuk DANA, ada link web checkout.
-          finalPaymentUrl = ewallet.checkoutUrl || "EWALLET_PENDING";
-        }
-        // Fallback: Invoice jika tidak dikenali (mencegah crash)
-        else {
-          const invoice = await this.xenditService.createInvoice({
-            externalId,
-            amount: grandTotal,
-            payerEmail: konsumen?.email,
-            customerName: konsumen?.nama,
-            description: `Pembayaran ${createdOrders.length} pesanan - Agro Jabar`,
-          });
+        const midtransTx = await this.midtransService.createTransaction({
+          externalId,
+          amount: grandTotal,
+          payerEmail: konsumen?.email,
+          customerName: konsumen?.nama,
+          customerPhone: konsumen?.noTelepon || data.mobileNumber,
+          itemDetails: itemDetails
+        });
 
-          finalPaymentId = invoice.invoiceId;
-          finalPaymentUrl = invoice.invoiceUrl;
-        }
+        const finalPaymentId = midtransTx.token;
+        const finalPaymentUrl = midtransTx.redirectUrl;
 
         // Simpan paymentId dan paymentUrl ke semua pesanan
         for (const order of createdOrders) {
@@ -445,12 +420,12 @@ export class CreateOrderUseCase {
           order.paymentId = finalPaymentId;
           order.paymentUrl = finalPaymentUrl;
         }
-      } catch (xenditError) {
-        // Jika Xendit gagal, pesanan tetap tersimpan tapi tanpa link/VA
+      } catch (midtransError) {
+        // Jika Midtrans gagal, pesanan tetap tersimpan tapi tanpa link bayar
         // Log error tapi jangan batalkan pesanan
         console.error(
-          "[CreateOrderUseCase] Xendit creation failed:",
-          xenditError?.message,
+          "[CreateOrderUseCase] Midtrans creation failed:",
+          midtransError?.message,
         );
       }
       

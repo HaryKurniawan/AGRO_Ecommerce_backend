@@ -28,7 +28,7 @@ import { GenerateAdminOrderReportUseCase } from "./use-cases/generate-admin-orde
 import { SubmitDeliveryProofUseCase } from "./use-cases/submit-delivery-proof.usecase";
 import { SellerConfirmOrderUseCase } from "./use-cases/seller-confirm-order.usecase";
 import { AutoConfirmOrderService } from "./services/auto-confirm-order.service";
-import { XenditService } from "./services/xendit.service";
+import { MidtransService } from "./services/midtrans.service";
 import { EcomProductsModule } from "../ecom-produk/ecom-produks.module";
 import { StoresModule } from "../toko/tokos.module";
 import { CommonModule } from "../../common/common.module";
@@ -86,7 +86,7 @@ import { OrderProcessor } from "./queue/order.processor";
     SubmitDeliveryProofUseCase,
     SellerConfirmOrderUseCase,
     AutoConfirmOrderService,
-    XenditService,
+    MidtransService,
     OrderProcessor,
   ],
   exports: [PesananEcomsRepository],
