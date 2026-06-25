@@ -109,6 +109,9 @@ model ProdukEcom {
   // Varian kemasan
   varian          VarianKemasan[]
 
+  @@index([tokoId])
+  @@index([kategoriId])
+  @@index([status])
   @@map("ecom_products")
   @@schema("ecommerce")
 }
@@ -269,6 +272,9 @@ model PesananEcom {
   toko        Toko?                   @relation(fields: [tokoId], references: [id])
   transaksiKeuntungan TransaksiKeuntungan[]
 
+  @@index([konsumenId])
+  @@index([status])
+  @@index([tokoId])
   @@map("ecom_orders")
   @@schema("ecommerce")
 }
@@ -292,6 +298,8 @@ model ItemPesananEcom {
   ulasan          UlasanProdukEcom?
   transaksiKeuntungan TransaksiKeuntungan?
 
+  @@index([pesananId])
+  @@index([produkId])
   @@map("ecom_order_items")
   @@schema("ecommerce")
 }
@@ -373,18 +381,45 @@ model AlamatKonsumen {
 
 // ─── Notifikasi ────────────────────────────────────────────────────────────
 
+enum TipeNotifikasi {
+  PESANAN
+  PESANAN_BARU
+  PEMBAYARAN
+  ULASAN
+  AKUN
+  PROMO
+  SISTEM
+  STOK
+  TOKO
+  GROSIR
+  LAPORAN
+  BROADCAST
+  TUGAS_BARU
+  TUGAS
+  CHAT
+  ESKALASI
+  VERIFIKASI_TOKO
+  VERIFIKASI_B2B
+
+  @@schema("ecommerce")
+}
+
 model Notifikasi {
-  id        String   @id @default(uuid())
+  id        String         @id @default(uuid())
   penggunaId String
   judul     String
   pesan     String
-  tipe      String
-  isRead    Boolean  @default(false)
+  tipe      TipeNotifikasi
+  isRead    Boolean        @default(false)
   data      Json?
-  createdAt DateTime @default(now())
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
   pengguna Pengguna @relation(fields: [penggunaId], references: [id], onDelete: Cascade)
 
+  @@index([penggunaId, isRead])
+  @@index([penggunaId, createdAt])
+  @@index([tipe])
   @@map("notifications")
   @@schema("ecommerce")
 }

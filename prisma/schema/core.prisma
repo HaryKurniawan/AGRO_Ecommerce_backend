@@ -104,6 +104,8 @@ model PercakapanChat {
   pesan PesanChat[]
 
   @@unique([tipe, partisipanA, partisipanB])
+  @@index([partisipanA])
+  @@index([partisipanB])
   @@map("percakapan_chat")
   @@schema("core")
 }
@@ -125,6 +127,9 @@ model PesanChat {
 
   percakapan PercakapanChat @relation(fields: [percakapanId], references: [id], onDelete: Cascade)
 
+  @@index([percakapanId])
+  @@index([pengirimId])
+  @@index([sudahDibaca])
   @@map("pesan_chat")
   @@schema("core")
 }
