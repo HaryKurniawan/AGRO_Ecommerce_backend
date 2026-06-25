@@ -28,6 +28,7 @@ export class FindProductsByStoreUseCase {
               namaWajibMengandung: true,
             },
           },
+          varian: true,
         },
       }),
       this.productsRepo.count({ where }),
