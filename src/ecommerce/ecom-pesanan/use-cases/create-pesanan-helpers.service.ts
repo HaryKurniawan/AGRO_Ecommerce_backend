@@ -114,6 +114,7 @@ export class CreateOrderHelpersService {
   async deductInventoryAndLog(
     storeOrder: CreateOrderStoreInput,
     pesananId: string,
+    penggunaId: string,
   ): Promise<void> {
     for (const item of storeOrder.item) {
       let qtyToDeductKg = item.jumlah;
@@ -161,7 +162,7 @@ export class CreateOrderHelpersService {
       await this.productsRepo.createStockHistory({
         data: {
           produkId: item.produkId,
-          penggunaId: "", // diisi oleh caller
+          penggunaId, // diisi oleh caller
           tipe: "OUT",
           kuantitas: -Math.round(qtyToDeductKg),
           stokAkhir: Math.floor(finalStok),

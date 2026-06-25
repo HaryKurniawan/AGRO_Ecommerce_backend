@@ -144,7 +144,7 @@ export class CreateOrderUseCase {
 
       // 3h. Kurangi stok & catat riwayat (retail only)
       if (!isB2B) {
-        await this.helpers.deductInventoryAndLog(storeOrder, pesanan.id);
+        await this.helpers.deductInventoryAndLog(storeOrder, pesanan.id, penggunaId);
       }
 
       createdOrders.push(pesanan);
