@@ -2,7 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { NotifSseService } from '../notifikasis.sse.service';
-import { TipeNotifikasi } from '@prisma/client';
+import { TipeNotifikasi, Peran } from '@prisma/client';
 
 @Processor('notifikasi')
 export class NotifProcessor extends WorkerHost {
@@ -84,7 +84,7 @@ export class NotifProcessor extends WorkerHost {
         select: { id: true },
       });
     } else if (target.startsWith('ROLE:')) {
-      const role = target.replace('ROLE:', '');
+      const role = target.replace('ROLE:', '') as Peran;
       targetUsers = await this.prisma.pengguna.findMany({
         where: { peran: role },
         select: { id: true },
