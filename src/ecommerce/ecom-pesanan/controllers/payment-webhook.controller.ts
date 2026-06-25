@@ -28,109 +28,97 @@ export class PaymentWebhookController {
   ) {}
 
   /**
-   * Midtrans Webhook Endpoint
-   * Dipanggil oleh Midtrans setiap kali status pembayaran berubah.
+   * Xendit Webhook Endpoint
+   * Dipanggil oleh Xendit setiap kali status invoice berubah.
    * Endpoint ini WAJIB dikecualikan dari auth guard (public).
    */
-  @Post("midtrans-webhook")
+  @Post("xendit-webhook")
   @HttpCode(200)
   @ApiOperation({
-    summary: "Webhook Midtrans — dipanggil oleh server Midtrans secara otomatis",
+    summary: "Webhook Xendit — dipanggil oleh server Xendit secara otomatis",
   })
-  async handleMidtransWebhook(
+  async handleXenditWebhook(
     @Headers("x-callback-token") callbackToken: string,
     @Body() payload: Record<string, unknown>,
   ): Promise<{ message: string }> {
-    // 1. Validasi Signature Key untuk Midtrans
-    const serverKey = this.configService.get<string>("MIDTRANS_SERVER_KEY") || "";
-    const signatureKey = payload.signature_key as string;
-    const orderId = payload.order_id as string;
-    const statusCode = payload.status_code as string;
-    const grossAmount = payload.gross_amount as string;
-    
-    if (serverKey && signatureKey) {
-      const hash = crypto.createHash("sha512").update(orderId + statusCode + grossAmount + serverKey).digest("hex");
-      if (hash !== signatureKey) {
-        this.logger.warn("Invalid Midtrans signature key");
-        throw new BadRequestException("Invalid signature");
-      }
+    // 1. Validasi Callback Token Xendit
+    const webhookToken =
+      this.configService.get<string>("XENDIT_WEBHOOK_TOKEN") || "";
+    if (webhookToken && callbackToken !== webhookToken) {
+      this.logger.warn("Invalid Xendit callback token");
+      throw new BadRequestException("Invalid callback token");
     }
 
-    // 2. Normalisasi Payload Midtrans
-    const transactionStatus = payload.transaction_status as string;
-    const fraudStatus = payload.fraud_status as string;
-    
-    let isPaid = false;
-    let event = transactionStatus;
+    // 2. Normalisasi Payload Xendit Invoice
+    const externalId = payload.external_id as string;
+    const status = (payload.status as string)?.toUpperCase();
 
-    if (transactionStatus === "capture") {
-      if (fraudStatus === "challenge") {
-        event = "CHALLENGE";
-      } else if (fraudStatus === "accept") {
-        isPaid = true;
-        event = "PAID";
-      }
-    } else if (transactionStatus === "settlement") {
+    let isPaid = false;
+    let event = status;
+
+    if (status === "PAID" || status === "SETTLED") {
       isPaid = true;
       event = "PAID";
-    } else if (transactionStatus === "cancel" || transactionStatus === "deny" || transactionStatus === "expire") {
+    } else if (status === "EXPIRED") {
       event = "EXPIRED";
     }
 
-    if (!orderId) {
-      this.logger.warn("Webhook ignored: Missing order_id in payload");
+    if (!externalId) {
+      this.logger.warn("Webhook ignored: Missing external_id in payload");
       return { message: "Webhook ignored - No ID" };
     }
 
-    this.logger.log(`Midtrans webhook processed: orderId=${orderId}, isPaid=${isPaid}, event=${event}`);
+    this.logger.log(
+      `Xendit webhook processed: externalId=${externalId}, isPaid=${isPaid}, event=${event}`,
+    );
 
     if (!isPaid && event !== "EXPIRED") {
-      this.logger.log(`Skipping event because it is not a success payment event or expired.`);
+      this.logger.log(
+        `Skipping event because it is not a success payment event or expired.`,
+      );
       return { message: "Event ignored" };
     }
 
-    // 3. Cari semua pesanan berdasarkan order_id (yang merupakan gabungan ID pesanan dipisahkan "-")
-    const orderIds = orderId.split("-");
+    // 3. Cari semua pesanan berdasarkan external_id
+    // external_id berupa gabungan order ID dipisahkan "-"
+    const orderIds = externalId.split("-");
     const pesananList = await this.prisma.pesananEcom.findMany({
       where: { id: { in: orderIds } },
     });
 
     if (!pesananList || pesananList.length === 0) {
-      this.logger.warn(
-        `No pesanan found for orderId: ${orderId}`,
-      );
+      this.logger.warn(`No pesanan found for externalId: ${externalId}`);
       return { message: "Pesanan not found" };
     }
 
     // 4. Update status semua pesanan terkait sesuai event Xendit
     for (const pesanan of pesananList) {
       // EVENT: PAID
-      // Mengubah status menjadi DIPROSES jika pesanan belum diproses.
-      // Jika pesanan sebelumnya DIBATALKAN (misal expired lalu dibayar manual/telat), kita terima pembayarannya
       if (
         event === "PAID" &&
-        (pesanan.status === "MENUNGGU_BAYAR" || pesanan.status === "DIBATALKAN")
+        (pesanan.status === "MENUNGGU_BAYAR" ||
+          pesanan.status === "DIBATALKAN")
       ) {
         const updated = await this.prisma.pesananEcom.update({
           where: { id: pesanan.id },
           data: { status: "DIPROSES" },
-          include: { 
-            item: { 
-              include: { 
-                produk: { 
-                  include: { 
-                    masterProduk: { 
-                      include: { mappingGudang: true } 
-                    } 
-                  } 
-                } 
-              } 
-            } 
-          }
+          include: {
+            item: {
+              include: {
+                produk: {
+                  include: {
+                    masterProduk: {
+                      include: { mappingGudang: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
         });
 
         this.logger.log(
-          `Pesanan ${pesanan.id} status updated to DIPROSES via Midtrans webhook (Event: PAID)`,
+          `Pesanan ${pesanan.id} status updated to DIPROSES via Xendit webhook (Event: PAID)`,
         );
 
         // Update profit transaction status
@@ -156,7 +144,6 @@ export class PaymentWebhookController {
         // Auto-Generate Pengajuan Stok untuk pesanan B2B
         if (updated.isGrosir) {
           try {
-            // Coba ambil gudangId dari mapping master produk item pertama
             let gudangId = "B2B_AUTO_WAREHOUSE";
             for (const orderItem of updated.item) {
               const mappings = orderItem.produk?.masterProduk?.mappingGudang;
@@ -166,7 +153,6 @@ export class PaymentWebhookController {
               }
             }
 
-            // Coba ambil link koordinat Google Maps dari alamat pengiriman
             let gpsLink = "";
             try {
               if (updated.alamatKirim) {
@@ -179,18 +165,20 @@ export class PaymentWebhookController {
               // Ignore parse error
             }
 
-            const catatan = `Pesanan B2B (${updated.id}): Kirim langsung ke alamat konsumen ${gpsLink}`.trim();
+            const catatan =
+              `Pesanan B2B (${updated.id}): Kirim langsung ke alamat konsumen ${gpsLink}`.trim();
 
             await this.prisma.pengajuanStokToko.create({
               data: {
                 tokoId: updated.tokoId || "",
                 gudangId: gudangId,
-                status: "SELESAI", // Asumsi SBU memproses & mengirim langsung
+                status: "SELESAI",
                 modePengemasan: "DEFAULT",
                 catatan: catatan,
                 items: {
                   create: updated.item.map((i) => {
-                    const mapped = i.produk?.masterProduk?.mappingGudang?.[0];
+                    const mapped =
+                      i.produk?.masterProduk?.mappingGudang?.[0];
                     return {
                       produkGudangId: mapped?.produkGudangId || "UNKNOWN",
                       namaProduk: i.produk?.nama || "Unknown Product",
@@ -203,14 +191,18 @@ export class PaymentWebhookController {
                 },
               },
             });
-            this.logger.log(`Auto-generated PengajuanStokToko B2B for order ${updated.id}`);
+            this.logger.log(
+              `Auto-generated PengajuanStokToko B2B for order ${updated.id}`,
+            );
           } catch (err) {
-            this.logger.error(`Failed to auto-generate B2B PengajuanStokToko for ${updated.id}:`, err);
+            this.logger.error(
+              `Failed to auto-generate B2B PengajuanStokToko for ${updated.id}:`,
+              err,
+            );
           }
         }
       }
       // EVENT: EXPIRED
-      // Membatalkan pesanan otomatis jika belum dibayar saat invoice expired
       else if (event === "EXPIRED" && pesanan.status === "MENUNGGU_BAYAR") {
         const updated = await this.prisma.pesananEcom.update({
           where: { id: pesanan.id },
@@ -218,7 +210,7 @@ export class PaymentWebhookController {
         });
 
         this.logger.log(
-          `Pesanan ${pesanan.id} status updated to DIBATALKAN via Midtrans webhook (Event: EXPIRED)`,
+          `Pesanan ${pesanan.id} status updated to DIBATALKAN via Xendit webhook (Event: EXPIRED)`,
         );
 
         // Batalkan profit transaction
@@ -232,6 +224,111 @@ export class PaymentWebhookController {
         }
 
         // Emit SSE event ke frontend
+        this.eventEmitter.emit("order.status.updated", {
+          orderId: pesanan.id,
+          status: updated.status,
+          tokoId: pesanan.tokoId,
+        });
+      }
+    }
+
+    return { message: "Webhook processed successfully" };
+  }
+
+  /**
+   * Legacy Midtrans Webhook (kept for backward compatibility with existing pending orders)
+   */
+  @Post("midtrans-webhook")
+  @HttpCode(200)
+  @ApiOperation({
+    summary: "Webhook Midtrans — legacy endpoint (tidak digunakan lagi)",
+  })
+  async handleMidtransWebhook(
+    @Headers("x-callback-token") callbackToken: string,
+    @Body() payload: Record<string, unknown>,
+  ): Promise<{ message: string }> {
+    const serverKey =
+      this.configService.get<string>("MIDTRANS_SERVER_KEY") || "";
+    const signatureKey = payload.signature_key as string;
+    const orderId = payload.order_id as string;
+    const statusCode = payload.status_code as string;
+    const grossAmount = payload.gross_amount as string;
+
+    if (serverKey && signatureKey) {
+      const hash = crypto
+        .createHash("sha512")
+        .update(orderId + statusCode + grossAmount + serverKey)
+        .digest("hex");
+      if (hash !== signatureKey) {
+        this.logger.warn("Invalid Midtrans signature key");
+        throw new BadRequestException("Invalid signature");
+      }
+    }
+
+    const transactionStatus = payload.transaction_status as string;
+    const fraudStatus = payload.fraud_status as string;
+
+    let isPaid = false;
+    let event = transactionStatus;
+
+    if (transactionStatus === "capture") {
+      if (fraudStatus === "challenge") {
+        event = "CHALLENGE";
+      } else if (fraudStatus === "accept") {
+        isPaid = true;
+        event = "PAID";
+      }
+    } else if (transactionStatus === "settlement") {
+      isPaid = true;
+      event = "PAID";
+    } else if (
+      transactionStatus === "cancel" ||
+      transactionStatus === "deny" ||
+      transactionStatus === "expire"
+    ) {
+      event = "EXPIRED";
+    }
+
+    if (!orderId) {
+      return { message: "Webhook ignored - No ID" };
+    }
+
+    if (!isPaid && event !== "EXPIRED") {
+      return { message: "Event ignored" };
+    }
+
+    const orderIds = orderId.split("-");
+    const pesananList = await this.prisma.pesananEcom.findMany({
+      where: { id: { in: orderIds } },
+    });
+
+    if (!pesananList || pesananList.length === 0) {
+      return { message: "Pesanan not found" };
+    }
+
+    for (const pesanan of pesananList) {
+      if (
+        event === "PAID" &&
+        (pesanan.status === "MENUNGGU_BAYAR" ||
+          pesanan.status === "DIBATALKAN")
+      ) {
+        const updated = await this.prisma.pesananEcom.update({
+          where: { id: pesanan.id },
+          data: { status: "DIPROSES" },
+        });
+        this.eventEmitter.emit("order.status.updated", {
+          orderId: pesanan.id,
+          status: updated.status,
+          tokoId: pesanan.tokoId,
+        });
+      } else if (
+        event === "EXPIRED" &&
+        pesanan.status === "MENUNGGU_BAYAR"
+      ) {
+        const updated = await this.prisma.pesananEcom.update({
+          where: { id: pesanan.id },
+          data: { status: "DIBATALKAN" },
+        });
         this.eventEmitter.emit("order.status.updated", {
           orderId: pesanan.id,
           status: updated.status,

@@ -1,58 +1,40 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
-import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from "bullmq";
-
-import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository";
-import { ProdukEcomsRepository } from "../../ecom-produk/repositories/ecom-produks.repository";
-import { TokosRepository } from "../../toko/repositories/tokos.repository";
+import { Injectable, BadRequestException, Logger } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { CalculateShippingCostsUseCase } from "../../../core/logistik/use-cases/calculate-shipping-costs.usecase";
 import { NotificationsService } from "../../../core/notifikasi/notifikasis.service";
-import { ProfitReportService } from "../../profit-report/profit-report.service";
-import { MidtransService } from "../services/midtrans.service";
-
+import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
+import { CreateOrderHelpersService } from "./create-pesanan-helpers.service";
 
+import type { CreateOrderInput } from "./create-pesanan.types";
+export { CreateOrderInput } from "./create-pesanan.types";
+
+/**
+ * CreateOrderUseCase — Orchestrator
+ *
+ * File ini hanya mengatur alur tingkat tinggi.
+ * Logika detail (kalkulasi harga, validasi stok, deduct inventory,
+ * pembayaran Xendit, dsb.) didelegasikan ke CreateOrderHelpersService.
+ */
 @Injectable()
 export class CreateOrderUseCase {
+  private readonly logger = new Logger(CreateOrderUseCase.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly ordersRepo: PesananEcomsRepository,
-    private readonly productsRepo: ProdukEcomsRepository,
-    private readonly tokosRepo: TokosRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly calcShippingUC: CalculateShippingCostsUseCase,
     private readonly notificationsService: NotificationsService,
-    private readonly profitReportService: ProfitReportService,
-    private readonly midtransService: MidtransService,
-    @InjectQueue("order") private readonly orderQueue: Queue,
+    private readonly helpers: CreateOrderHelpersService,
   ) {}
 
-  async execute(
-    penggunaId: string,
-    data: {
-      metodeBayar: string;
-      alamatKirim: string;
-      jadwalKirim?: string;
-      mobileNumber?: string; // Khusus OVO
-      pesanan: {
-        tokoId: string;
-        ongkir: number;
-        catatan?: string;
-        metodeKirim?: string;
-        item: {
-          produkId: string;
-          jumlah: number;
-          harga: number;
-          varianKemasanId?: string;
-        }[];
-      }[];
-    },
-  ) {
-    if (!data.pesanan || data.pesanan.length === 0) {
+  async execute(penggunaId: string, data: CreateOrderInput) {
+    if (!data.pesanan?.length) {
       throw new BadRequestException("Pesanan tidak boleh kosong");
     }
 
+    // ── 1. Validasi alamat pengiriman ──────────────────────
     const customerAddress = await this.prisma.alamatKonsumen.findUnique({
       where: { id: data.alamatKirim },
     });
@@ -62,149 +44,77 @@ export class CreateOrderUseCase {
 
     const createdOrders: any[] = [];
 
-    // RE-CALCULATE SHIPPING COSTS UNTUK ANTI-BYPASS
+    // ── 2. Pra-hitung ongkir (anti-bypass) ────────────────
     await this.calcShippingUC.execute({
       customerAddressId: data.alamatKirim,
-      toko: data.pesanan.map((p) => {
-        // Estimate total weight here for the recalculation
-        return {
-          tokoId: p.tokoId,
-          totalWeightGram: 1000, // We will recalculate this exactly below, but we need it here for accurate ongkir
-        };
-      }),
+      toko: data.pesanan.map((p) => ({ tokoId: p.tokoId, totalWeightGram: 1000 })),
     });
 
-    // Loop through each toko's pesanan
+    // ── 3. Proses tiap toko ────────────────────────────────
     for (const storeOrder of data.pesanan) {
-      let totalWeightGram = 0;
-      for (const item of storeOrder.item) {
-        const product = await this.productsRepo.findUnique({
-          where: { id: item.produkId },
-          select: { id: true, nama: true, beratGram: true, harga: true },
-        });
+      // 3a. Hitung harga & berat; cegah price manipulation
+      const { totalWeightGram, isB2B } =
+        await this.helpers.calcItemPricesAndWeight(storeOrder.item);
 
-        if (!product) {
-          throw new BadRequestException(
-            `Produk ${item.produkId} tidak ditemukan`,
-          );
-        }
-
-        let weightGram = product.beratGram || 1000;
-        let calculatedPrice = product.harga;
-
-        if (item.varianKemasanId) {
-          const varian = await this.prisma.varianKemasan.findUnique({
-            where: { id: item.varianKemasanId },
-          });
-          if (varian) {
-            weightGram = varian.ukuranKg * 1000;
-            // Dynamic Pricing Formula: (Base Price * Kg) + Extra Fee
-            calculatedPrice = (product.harga * varian.ukuranKg) + (varian.biayaTambahan || 0);
-          }
-        }
-
-        // Prevent price manipulation from frontend
-        item.harga = calculatedPrice;
-
-        totalWeightGram += weightGram * item.jumlah;
-      }
-
-      const isB2B = totalWeightGram >= 300000; // >= 300kg
-
-      // Re-run calculateShippingCosts explicitly for this store with accurate weight
-      const accurateShipping = await this.calcShippingUC.execute({
+      // 3b. Hitung ongkir akurat berdasarkan berat nyata
+      const shippingResults = await this.calcShippingUC.execute({
         customerAddressId: data.alamatKirim,
         toko: [{ tokoId: storeOrder.tokoId, totalWeightGram }],
       });
-
-      const shippingDetail = accurateShipping.find(
-        (s) => s.tokoId === storeOrder.tokoId,
-      );
-      if (!shippingDetail) {
+      const shipping = shippingResults.find((s) => s.tokoId === storeOrder.tokoId);
+      if (!shipping) {
         throw new BadRequestException(
           `Pengiriman dari toko ${storeOrder.tokoId} tidak ditemukan`,
         );
       }
-
-      const chosenMethod = storeOrder.metodeKirim || "LOKAL";
-
-      if (!shippingDetail.isAvailable) {
+      if (!shipping.isAvailable) {
         throw new BadRequestException(
-          `Metode pengiriman 'LOKAL' tidak tersedia untuk toko ${storeOrder.tokoId}: ${shippingDetail.keterangan}`,
+          `Metode pengiriman tidak tersedia untuk toko ${storeOrder.tokoId}: ${shipping.keterangan}`,
+        );
+      }
+      if (storeOrder.ongkir !== shipping.ongkir) {
+        throw new BadRequestException(
+          `Manipulasi Ongkir Terdeteksi! Frontend: ${storeOrder.ongkir}, Valid: ${shipping.ongkir}`,
         );
       }
 
-      // Validasi Anti-Bypass Ongkir
-      if (storeOrder.ongkir !== shippingDetail.ongkir) {
-        throw new BadRequestException(
-          `Manipulasi Ongkir Terdeteksi! Ongkir dari frontend: ${storeOrder.ongkir}, Ongkir valid sistem: ${shippingDetail.ongkir}`,
-        );
-      }
-
-      // 2. Determine routing
-      const diprosesOleh = "TOKO";
-      const gudangId: string | undefined = undefined;
-
-      // 3. Check and deduct inventory from Store Inventory (Only for Retail)
+      // 3c. Validasi stok (retail only)
       if (!isB2B) {
-        for (const item of storeOrder.item) {
-          if (item.varianKemasanId) {
-            const varian = await this.prisma.varianKemasan.findUnique({
-              where: { id: item.varianKemasanId },
-            });
-            if (!varian || !varian.isActive || varian.stokKemasan < item.jumlah) {
-              throw new BadRequestException(
-                `Stok kemasan untuk produk ${item.produkId} (${varian?.ukuranKg}kg) tidak mencukupi (Tersedia: ${varian?.stokKemasan || 0} unit)`,
-              );
-            }
-          } else {
-            const productInventory = await this.productsRepo.findManyInventory({
-              where: {
-                tokoId: storeOrder.tokoId,
-                produkId: item.produkId,
-              },
-            });
-
-            const totalAvailableStock = productInventory.reduce(
-              (sum, inv) => sum + inv.stokTersediaKg,
-              0,
-            );
-
-            if (totalAvailableStock < item.jumlah) {
-              throw new BadRequestException(
-                `Stok Toko untuk produk ${item.produkId} tidak mencukupi (Tersedia: ${totalAvailableStock}kg)`,
-              );
-            }
-          }
-        }
+        await this.helpers.validateStock(storeOrder);
       }
+
+      // 3d. Bangun alamat pengiriman yang bersih
+      const alamatKirim = [
+        customerAddress.alamat,
+        customerAddress.kecamatan,
+        customerAddress.kota,
+        customerAddress.provinsi,
+        customerAddress.kodePos,
+      ]
+        .filter(Boolean)
+        .join(", ")
+        .replace(/,\s*,/g, ",")
+        .replace(/\s+/g, " ")
+        .trim();
 
       const totalHargaItems = storeOrder.item.reduce(
         (sum, i) => sum + i.harga * i.jumlah,
         0,
       );
 
-      // 4. Create PesananEcom
+      // 3e. Buat PesananEcom di DB
       const pesanan = await this.ordersRepo.create({
         data: {
           konsumenId: penggunaId,
           totalHarga: totalHargaItems + (storeOrder.ongkir || 0),
           ongkir: storeOrder.ongkir || 0,
           metodeBayar: data.metodeBayar,
-          alamatKirim:
-            `${customerAddress.alamat}, ${customerAddress.kecamatan || ""}, ${customerAddress.kota || ""}, ${customerAddress.provinsi || ""} ${customerAddress.kodePos || ""}`
-              .replace(/,\s*,/g, ",")
-              .replace(/\s+/g, " ")
-              .replace(/, ,/g, ",")
-              .trim(),
-          jadwalKirim: data.jadwalKirim
-            ? new Date(data.jadwalKirim)
-            : undefined,
-          jarakPengirimanKm: shippingDetail.distanceKm,
-          isFallbackDistance: shippingDetail.isFallback,
-          metodeKirim: chosenMethod,
-          diprosesOleh,
-          gudangId,
+          alamatKirim,
+          jadwalKirim: data.jadwalKirim ? new Date(data.jadwalKirim) : undefined,
+          jarakPengirimanKm: shipping.distanceKm,
+          isFallbackDistance: shipping.isFallback,
+          metodeKirim: storeOrder.metodeKirim || "LOKAL",
+          diprosesOleh: "TOKO",
           tokoId: storeOrder.tokoId,
           catatan: storeOrder.catatan,
           item: {
@@ -219,132 +129,31 @@ export class CreateOrderUseCase {
         include: { item: { include: { produk: true } } },
       });
 
-      // 4.5. Create FIFO profit transactions for each item
-      try {
-        for (const itemPesanan of pesanan.item) {
-          await this.profitReportService.createProfitTransaction({
-            id: itemPesanan.id,
-            pesananId: pesanan.id,
-            produkId: itemPesanan.produkId,
-            jumlah: itemPesanan.jumlah,
-            harga: itemPesanan.harga,
-            produk: { 
-              tokoId: storeOrder.tokoId,
-              hargaBeli: itemPesanan.produk.hargaBeli 
-            },
-            pesanan: { status: pesanan.status },
-            isB2B: isB2B,
-          });
-        }
-        console.log(
-          `[CreateOrderUseCase] Created FIFO profit transactions for pesanan ${pesanan.id}`,
-        );
-      } catch (error) {
-        console.error(
-          `[CreateOrderUseCase] Error creating FIFO profit transactions:`,
-          error,
-        );
-        // Don't fail the entire order if profit tracking fails
-      }
+      // 3f. Catat profit FIFO (non-fatal)
+      await this.helpers.recordProfitTransactions(pesanan, storeOrder.tokoId, isB2B);
 
-      // Kirim Notifikasi Darurat ke Admin & Seller jika Fallback digunakan
-      if (shippingDetail.isFallback) {
+      // 3g. Notifikasi fallback jarak
+      if (shipping.isFallback) {
         await this.notificationsService.create(penggunaId, {
           judul: "Peringatan Jarak Pengiriman",
-          pesan: `Pesanan ${pesanan.id} dihitung menggunakan estimasi jarak garis lurus karena server rute sedang sibuk. Selisih jarak dengan kurir mungkin terjadi.`,
+          pesan: `Pesanan ${pesanan.id} menggunakan estimasi jarak garis lurus.`,
           tipe: "SYSTEM_WARNING",
           data: { pesananId: pesanan.id },
         });
       }
 
+      // 3h. Kurangi stok & catat riwayat (retail only)
       if (!isB2B) {
-        for (const item of storeOrder.item) {
-          let qtyToDeductKg = item.jumlah;
-
-          if (item.varianKemasanId) {
-            const varian = await this.prisma.varianKemasan.update({
-              where: { id: item.varianKemasanId },
-              data: {
-                stokKemasan: { decrement: item.jumlah },
-              },
-            });
-            qtyToDeductKg = item.jumlah * (varian?.ukuranKg || 1.0);
-          }
-
-          const inventories = await this.productsRepo.findManyInventory({
-            where: {
-              tokoId: storeOrder.tokoId,
-              produkId: item.produkId,
-            },
-            take: 1,
-          });
-          const inventory = inventories[0];
-
-          if (inventory) {
-            await this.productsRepo.updateInventory({
-              where: { id: inventory.id },
-              data: {
-                stokTersediaKg: { decrement: qtyToDeductKg },
-                stokFisikKg: { decrement: qtyToDeductKg },
-              },
-            });
-          }
-
-          // Final sync for product total stock and status
-          const totalStok = await this.productsRepo
-            .findUnique({
-              where: { id: item.produkId },
-              select: { stok: true },
-            })
-            .then((p) => p?.stok ?? 0);
-
-          const finalTotalStok = Math.max(0, totalStok - qtyToDeductKg);
-
-          await this.productsRepo.update({
-            where: { id: item.produkId },
-            data: {
-              stok: finalTotalStok,
-              status: finalTotalStok === 0 ? "OUT_OF_STOCK" : undefined,
-            },
-          });
-
-          // Log history (represented in total kg)
-          await this.productsRepo.createStockHistory({
-            data: {
-              produkId: item.produkId,
-              penggunaId,
-              tipe: "OUT",
-              kuantitas: -Math.round(qtyToDeductKg),
-              stokAkhir: Math.floor(finalTotalStok),
-              catatan: item.varianKemasanId
-                ? `Penjualan Pesanan #${pesanan.id} (${item.jumlah} kemasan)`
-                : `Penjualan Pesanan #${pesanan.id} (Unified Stock)`,
-              pesananId: pesanan.id,
-            },
-          });
-        }
+        await this.helpers.deductInventoryAndLog(storeOrder, pesanan.id);
       }
 
       createdOrders.push(pesanan);
     }
 
-    // Clear keranjang after all pesanan created
-    const keranjang = await this.ordersRepo.findCartByCustomerId(penggunaId);
-    if (keranjang) {
-      for (const order of data.pesanan) {
-        for (const item of order.item) {
-          await this.ordersRepo.deleteManyCartItems({
-            where: {
-              keranjangId: keranjang.id,
-              produkId: item.produkId,
-              varianKemasanId: item.varianKemasanId || null,
-            },
-          });
-        }
-      }
-    }
+    // ── 4. Kosongkan keranjang ─────────────────────────────
+    await this.helpers.clearCart(penggunaId, data.pesanan);
 
-    // Emit events for real-time SSE
+    // ── 5. Emit SSE ke semua listener real-time ─────────────
     for (const order of createdOrders) {
       this.eventEmitter.emit("order.status.updated", {
         orderId: order.id,
@@ -353,96 +162,28 @@ export class CreateOrderUseCase {
       });
     }
 
-    // ========== MIDTRANS PAYMENT GATEWAY ==========
-    // SEMUA transaksi WAJIB menggunakan Payment Gateway Midtrans
+    // ── 6. Buat pembayaran Xendit (QRIS / Invoice) ─────────
     if (createdOrders.length > 0) {
+      const konsumen = await this.prisma.pengguna.findUnique({
+        where: { id: penggunaId },
+        select: { nama: true, email: true, noTelepon: true },
+      });
+
       try {
-        // Ambil data konsumen untuk email
-        const konsumen = await this.prisma.pengguna.findUnique({
-          where: { id: penggunaId },
-          select: { nama: true, email: true, noTelepon: true },
-        });
-
-        // Total dari semua pesanan
-        const grandTotal = createdOrders.reduce(
-          (sum, o) => sum + (o.totalHarga || 0),
-          0,
+        await this.helpers.processXenditPayment(
+          createdOrders,
+          data.metodeBayar,
+          konsumen,
+          data.mobileNumber,
         );
-
-        // External ID unik menggabungkan semua pesanan ID
-        const externalId = createdOrders
-          .map((o) => o.id)
-          .join("-");
-
-        // Format item details untuk Midtrans
-        const itemDetails = [];
-        for (const order of createdOrders) {
-          for (const item of order.item) {
-            itemDetails.push({
-              id: item.produkId,
-              price: item.harga,
-              quantity: item.jumlah,
-              name: item.produk?.nama?.substring(0, 50) || "Produk",
-            });
-          }
-          if (order.ongkir > 0) {
-            itemDetails.push({
-              id: `ONGKIR-${order.id}`,
-              price: order.ongkir,
-              quantity: 1,
-              name: "Ongkos Kirim",
-            });
-          }
-        }
-
-        const midtransTx = await this.midtransService.createTransaction({
-          externalId,
-          amount: grandTotal,
-          payerEmail: konsumen?.email,
-          customerName: konsumen?.nama,
-          customerPhone: konsumen?.noTelepon || data.mobileNumber,
-          itemDetails: itemDetails
-        });
-
-        const finalPaymentId = midtransTx.token;
-        const finalPaymentUrl = midtransTx.redirectUrl;
-
-        // Simpan paymentId dan paymentUrl ke semua pesanan
-        for (const order of createdOrders) {
-          await this.prisma.pesananEcom.update({
-            where: { id: order.id },
-            data: {
-              paymentId: finalPaymentId,
-              paymentUrl: finalPaymentUrl,
-            },
-          });
-          // Update object in memory agar response ke frontend sudah update
-          order.paymentId = finalPaymentId;
-          order.paymentUrl = finalPaymentUrl;
-        }
-      } catch (midtransError) {
-        // Jika Midtrans gagal, pesanan tetap tersimpan tapi tanpa link bayar
-        // Log error tapi jangan batalkan pesanan
-        console.error(
-          "[CreateOrderUseCase] Midtrans creation failed:",
-          midtransError?.message,
-        );
+      } catch (err: any) {
+        // Pembayaran Xendit gagal → pesanan tetap tersimpan
+        this.logger.error("Xendit payment failed:", err?.message);
       }
-      
-      // Jadwalkan auto-cancel order setelah 24 jam untuk semua pesanan yang dibuat
-      for (const order of createdOrders) {
-        try {
-          await this.orderQueue.add(
-            "cancelUnpaidOrder",
-            { orderId: order.id },
-            { delay: 24 * 60 * 60 * 1000 }, // 24 hours
-          );
-        } catch (err) {
-          console.error(`Failed to schedule auto-cancel for order ${order.id}:`, err);
-        }
-      }
+
+      // ── 7. Jadwalkan auto-cancel 24 jam ───────────────────
+      await this.helpers.scheduleAutoCancels(createdOrders.map((o) => o.id));
     }
-    // ============================================
 
     return createdOrders;
   }
