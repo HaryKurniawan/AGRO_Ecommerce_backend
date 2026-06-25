@@ -9,7 +9,7 @@ import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository
 import { TokosRepository } from "../../toko/repositories/tokos.repository";
 import { ProdukEcomsRepository } from "../../ecom-produk/repositories/ecom-produks.repository";
 import { PengajuanStokRepository } from "../../pengajuan-stok/repositories/pengajuan-stok.repository";
-import { MidtransService } from "../services/midtrans.service";
+import { XenditService } from "../services/xendit.service";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 
 @Injectable()
@@ -21,7 +21,7 @@ export class KonfirmasiPesananGrosirUseCase {
     private readonly tokosRepo: TokosRepository,
     private readonly productsRepo: ProdukEcomsRepository,
     private readonly pengajuanStokRepo: PengajuanStokRepository,
-    private readonly midtransService: MidtransService,
+    private readonly xenditService: XenditService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -122,19 +122,34 @@ export class KonfirmasiPesananGrosirUseCase {
           });
         }
 
-        const midtransTx = await this.midtransService.createTransaction({
-          externalId: pesanan.id,
-          amount: totalHarga,
-          payerEmail: konsumen?.email,
-          customerName: konsumen?.nama,
-          customerPhone: konsumen?.noTelepon,
-          itemDetails: itemDetails
-        });
-
-        paymentId = midtransTx.token;
-        paymentUrl = midtransTx.redirectUrl;
-      } catch (midtransError) {
-        this.logger.error("Gagal membuat transaksi Midtrans", midtransError?.message);
+        if (pesanan.metodeBayar?.toUpperCase() === "QRIS") {
+          const qrisTx = await this.xenditService.createQRIS({
+            referenceId: pesanan.id,
+            amount: totalHarga,
+          });
+          paymentId = qrisTx.id;
+          paymentUrl = qrisTx.qrString;
+        } else {
+          const invoiceTx = await this.xenditService.createInvoice({
+            externalId: pesanan.id,
+            amount: totalHarga,
+            payerEmail: konsumen?.email,
+            customerName: konsumen?.nama,
+            customerPhone: konsumen?.noTelepon,
+            items: itemDetails.map((i) => ({
+              name: i.name,
+              price: i.price,
+              quantity: i.quantity,
+            })),
+          });
+          paymentId = invoiceTx.id;
+          paymentUrl = invoiceTx.invoiceUrl;
+        }
+      } catch (xenditError: any) {
+        this.logger.error(
+          "Gagal membuat transaksi Xendit",
+          xenditError?.message,
+        );
       }
     }
 

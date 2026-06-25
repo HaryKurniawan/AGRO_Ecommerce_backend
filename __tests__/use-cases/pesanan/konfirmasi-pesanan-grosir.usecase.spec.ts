@@ -8,7 +8,7 @@ describe("KonfirmasiPesananGrosirUseCase", () => {
   let tokosRepoMock: any;
   let productsRepoMock: any;
   let pengajuanStokRepoMock: any;
-  let midtransServiceMock: any;
+  let xenditServiceMock: any;
   let prismaMock: any;
 
   beforeEach(() => {
@@ -27,8 +27,9 @@ describe("KonfirmasiPesananGrosirUseCase", () => {
 
     pengajuanStokRepoMock = {};
 
-    midtransServiceMock = {
-      createTransaction: vi.fn()
+    xenditServiceMock = {
+      createInvoice: vi.fn(),
+      createQRIS: vi.fn()
     };
 
     prismaMock = {
@@ -42,7 +43,7 @@ describe("KonfirmasiPesananGrosirUseCase", () => {
       tokosRepoMock as any,
       productsRepoMock as any,
       pengajuanStokRepoMock as any,
-      midtransServiceMock as any,
+      xenditServiceMock as any,
       prismaMock as any
     );
   });
@@ -100,7 +101,7 @@ describe("KonfirmasiPesananGrosirUseCase", () => {
     
     prismaMock.pengguna.findUnique.mockResolvedValue({ email: "test@test.com", nama: "Test User" });
     
-    midtransServiceMock.createTransaction.mockResolvedValue({ redirectUrl: "https://midtrans.com/pay123", token: "tok123" });
+    xenditServiceMock.createInvoice.mockResolvedValue({ invoiceUrl: "https://xendit.co/pay123", id: "tok123" });
 
     ordersRepoMock.update.mockResolvedValue({ status: "MENUNGGU_BAYAR" });
 
@@ -111,7 +112,7 @@ describe("KonfirmasiPesananGrosirUseCase", () => {
 
     expect(result.status).toBe("MENUNGGU_BAYAR");
     
-    expect(midtransServiceMock.createTransaction).toHaveBeenCalledWith(
+    expect(xenditServiceMock.createInvoice).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: 515000
       })
@@ -123,7 +124,7 @@ describe("KonfirmasiPesananGrosirUseCase", () => {
           status: "MENUNGGU_BAYAR",
           totalHarga: 515000,
           ongkir: 15000,
-          paymentUrl: "https://midtrans.com/pay123"
+          paymentUrl: "https://xendit.co/pay123"
         })
       })
     );
