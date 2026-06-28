@@ -1,40 +1,17 @@
 pipeline {
     agent any
 
-    stages {
+    environment {
+        IS_PRODUCTION = "${env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master' || env.BRANCH_NAME == null}"
+        
+        APP_PORT = "${IS_PRODUCTION == 'true' ? '4000' : '4001'}"
+        CONTAINER_NAME = "${IS_PRODUCTION == 'true' ? 'agro-backend' : 'agro-backend-staging'}"
+        ENV_CRED_ID = "${IS_PRODUCTION == 'true' ? 'agro-env' : 'agro-env-staging'}"
+        IMAGE_NAME = "${CONTAINER_NAME}-image"
+    }
 
-        // stage('OWASP Dependency-Check') {
-        //     steps {
-        //         withCredentials([
-        //             string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')
-        //         ]) {
-        //             sh '''
-        //             if [ -n "$NVD_API_KEY" ]; then
-        //               echo "API Key ditemukan"
-        //             else
-        //               echo "API Key kosong"
-        //               exit 1
-        //             fi
-                    
-        //             echo "Running OWASP Dependency-Check for Backend..."
-        //             docker run --rm \\
-        //                 -u \$(id -u):\$(id -g) \\
-        //                 -v "\$(pwd):/src" \\
-        //                 -v "/var/jenkins_home/dependency-check-data:/usr/share/dependency-check/data" \\
-        //                 owasp/dependency-check:latest \\
-        //                 --project "Ecommerce Backend" \\
-        //                 --scan /src \\
-        //                 --exclude "**/node_modules/**" \\
-        //                 --exclude "**/dist/**" \\
-        //                 --exclude "**/coverage/**" \\
-        //                 --nvdApiKey \$NVD_API_KEY \\
-        //                 --format "HTML" \\
-        //                 --format "JSON" \\
-        //                 --out /src/dependency-check-report || true
-        //             '''
-        //         }
-        //     }
-        // }
+    stages {
+        // stage('OWASP Dependency-Check') { ... }
 
         stage('Unit Test & Coverage') {
             steps {
@@ -47,20 +24,16 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 EOF
-                docker build -t agro-backend-test -f Dockerfile.test .
+                docker build -t ${IMAGE_NAME}-test -f Dockerfile.test .
                 rm Dockerfile.test
                 '''
                 
                 echo "Running Unit Tests and Extracting Reports..."
                 sh '''
-                # Jalankan test di dalam container dan abaikan error sementara agar bisa extract report
-                docker run --name test-run-container agro-backend-test npm run test:coverage || true
-                
-                # Tarik keluar folder coverage yang berisi laporan HTML, JUnit, dan Cobertura ke workspace Jenkins
+                docker run --name test-run-container ${IMAGE_NAME}-test npm run test:coverage || true
                 rm -rf ./coverage
                 docker cp test-run-container:/app/coverage ./coverage || true
                 
-                # Ambil status exit code asli dari test
                 EXIT_CODE=$(docker inspect test-run-container --format='{{.State.ExitCode}}')
                 docker rm test-run-container
                 
@@ -75,53 +48,68 @@ EOF
         stage('Build Docker Image') {
             steps {
                 sh '''
-                docker build -t agro-backend .
+                docker build -t ${IMAGE_NAME} .
                 '''
             }
         }
 
-        stage('Deploy') {
-        steps {
-            withCredentials([
-                file(credentialsId: 'agro-env', variable: 'ENV_FILE')
-            ]) {
-                sh '''
-                docker stop agro-backend || true
-                docker rm agro-backend || true
-
-               docker run -d \
-                --name agro-backend \
-                --network 1panel-network \
-                --env-file $ENV_FILE \
-                -v /data/agro/public/uploads:/app/public/uploads \
-                -p 4000:4000 \
-                agro-backend
-                '''
-            }
-        }
-    }
-
-        stage('Health Check') {
+        stage('Deploy (Safe Restart)') {
             steps {
-                sh '''
-                echo "Waiting application startup..."
+                withCredentials([
+                    file(credentialsId: "${ENV_CRED_ID}", variable: 'ENV_FILE')
+                ]) {
+                    sh '''
+                    TEST_CONTAINER="${CONTAINER_NAME}-tester"
+                    
+                    echo "=== Memulai Proses Deploy Anti-Downtime ==="
+                    docker rm -f $TEST_CONTAINER || true
 
-                for i in \$(seq 1 30)
-                do
-                  if curl -sf http://agro-backend:4000/api/health > /dev/null; then
-                    echo "Application is healthy!"
-                    exit 0
-                  fi
+                    echo "1. Menyalakan versi baru di latar belakang..."
+                    docker run -d \
+                    --name $TEST_CONTAINER \
+                    --network 1panel-network \
+                    --env-file $ENV_FILE \
+                    -v /data/agro/public/uploads:/app/public/uploads \
+                    ${IMAGE_NAME}
 
-                  echo "Attempt $i/30 - waiting..."
-                  sleep 5
-                done
+                    echo "2. Menunggu 10 detik startup database..."
+                    sleep 10
 
-                echo "Application failed to become healthy"
-                docker logs agro-backend --tail 100
+                    # Health check specific for Backend API
+                    echo "3. Melakukan API Health Check..."
+                    HEALTHY="false"
+                    for i in $(seq 1 15); do
+                        # We use docker exec to run curl inside the tester container since it has no mapped host port yet
+                        if docker exec $TEST_CONTAINER curl -sf http://127.0.0.1:4000/api/health > /dev/null; then
+                            HEALTHY="true"
+                            break
+                        fi
+                        echo "Menunggu Backend API siap (percobaan $i/15)..."
+                        sleep 3
+                    done
 
-                exit 1
-                '''
+                    if [ "$HEALTHY" = "true" ]; then
+                        echo "4. UJI COBA SUKSES! API Sehat. Mengalihkan traffic..."
+                        docker rm -f ${CONTAINER_NAME} || true
+                        docker rm -f $TEST_CONTAINER || true
+                        
+                        docker run -d \
+                        --name ${CONTAINER_NAME} \
+                        --network 1panel-network \
+                        --env-file $ENV_FILE \
+                        -v /data/agro/public/uploads:/app/public/uploads \
+                        -p ${APP_PORT}:4000 \
+                        ${IMAGE_NAME}
+
+                        echo "=== Deploy ${CONTAINER_NAME} BERHASIL ==="
+                    else
+                        echo "=== GAGAL: Aplikasi backend gagal health check ==="
+                        docker logs $TEST_CONTAINER --tail 100
+                        docker rm -f $TEST_CONTAINER
+                        exit 1
+                    fi
+                    '''
+                }
             }
         }
 
@@ -129,7 +117,7 @@ EOF
             steps {
                 sh '''
                 echo "Running Prisma DB Push..."
-                docker exec agro-backend npx prisma db push
+                docker exec ${CONTAINER_NAME} npx prisma db push
                 '''
             }
         }
@@ -141,14 +129,12 @@ EOF
             archiveArtifacts artifacts: 'coverage/**', allowEmptyArchive: true
             junit testResults: 'coverage/junit.xml', allowEmptyResults: true
         }
-
         success {
-            echo 'Deployment successful!'
+            echo "${CONTAINER_NAME} deployment successful!"
         }
-
         failure {
-            echo 'Deployment failed!'
-            sh 'docker logs agro-backend --tail 100 || true'
+            echo "${CONTAINER_NAME} deployment failed!"
+            sh 'docker logs ${CONTAINER_NAME} --tail 100 || true'
         }
     }
 }
