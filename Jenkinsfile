@@ -80,7 +80,7 @@ EOF
                     HEALTHY="false"
                     for i in $(seq 1 15); do
                         # We use docker exec to run curl inside the tester container since it has no mapped host port yet
-                        if docker exec $TEST_CONTAINER curl -sf http://127.0.0.1:4000/api/health > /dev/null; then
+                        if docker exec $TEST_CONTAINER wget -qO- http://127.0.0.1:4000/api/health > /dev/null; then
                             HEALTHY="true"
                             break
                         fi
