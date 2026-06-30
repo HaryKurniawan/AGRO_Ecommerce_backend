@@ -4,6 +4,10 @@ import { ConfigService } from "@nestjs/config";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import helmet from "helmet";
 import * as express from "express";
+import * as dns from "dns";
+
+// Fix for Node.js 17+ hanging on IPv6 when calling Google APIs
+dns.setDefaultResultOrder("ipv4first");
 
 import { AppModule } from "./app.module";
 import { setupSwagger } from "./docs/swagger.config";
