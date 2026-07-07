@@ -93,7 +93,7 @@ export class XenditService {
             mobile_number: payload.customerPhone,
           },
           items: payload.items || [],
-          invoice_duration: 86400, // 24 jam dalam detik
+          invoice_duration: 3600, // 1 jam dalam detik
           success_redirect_url: `${this.configService.get("FRONTEND_URL")}/pesanan?payment=success`,
           failure_redirect_url: `${this.configService.get("FRONTEND_URL")}/pesanan?payment=failed`,
           payment_methods: [
@@ -146,7 +146,7 @@ export class XenditService {
       );
 
       // Waktu kadaluarsa: 24 jam dari sekarang
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString();
 
       const response = await axios.post(
         this.qrApiUrl,

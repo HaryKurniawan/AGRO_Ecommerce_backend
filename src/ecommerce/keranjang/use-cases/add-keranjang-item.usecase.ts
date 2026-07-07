@@ -2,14 +2,12 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { GetCartUseCase } from "./get-keranjang.usecase";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
 
 @Injectable()
 export class AddCartItemUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly getCartUC: GetCartUseCase,
-    private readonly redisService: RedisService,
   ) {}
 
   async execute(
@@ -26,14 +24,27 @@ export class AddCartItemUseCase {
       throw new BadRequestException("Produk tidak ditemukan atau stok tidak mencukupi");
     }
 
-    const key = `${produkId}_${varianKemasanId || 'null'}`;
-    const cartKey = `cart:${penggunaId}`;
-    
-    // Add to Redis Hash
-    await this.redisService.getClient().hincrby(cartKey, key, jumlah);
-    
-    // Reset TTL to 7 days
-    await this.redisService.getClient().expire(cartKey, 604800);
+    const keranjang = await this.getCartUC.execute(penggunaId);
+
+    const existingItem = keranjang.item.find(
+      (i) => i.produkId === produkId && i.varianKemasanId === (varianKemasanId || null)
+    );
+
+    if (existingItem) {
+      await this.prisma.itemKeranjangEcom.update({
+        where: { id: existingItem.id },
+        data: { jumlah: existingItem.jumlah + jumlah },
+      });
+    } else {
+      await this.prisma.itemKeranjangEcom.create({
+        data: {
+          keranjangId: keranjang.id,
+          produkId,
+          varianKemasanId: varianKemasanId || null,
+          jumlah,
+        },
+      });
+    }
 
     return { success: true, message: "Item added to cart" };
   }

@@ -4,14 +4,13 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { EmailService } from "../../../common/services/email.service";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
+
 
 @Injectable()
 export class ResendVerificationUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
-    private readonly redisService: RedisService,
   ) {}
 
   async execute(email: string) {
@@ -32,13 +31,13 @@ export class ResendVerificationUseCase {
 
     const verifyToken = randomBytes(32).toString("hex");
 
-    // Simpan token ke Redis dengan TTL 24 jam (86400 detik)
-    await this.redisService.getClient().set(
-      `email:verify:${verifyToken}`,
-      pengguna.id,
-      "EX",
-      86400,
-    );
+    await this.prisma.pengguna.update({
+      where: { id: pengguna.id },
+      data: {
+        tokenVerifikasiEmail: verifyToken,
+        kadaluarsaTokenEmail: new Date(Date.now() + 86400 * 1000), // 24 hours
+      },
+    });
 
     await this.emailService.sendEmailVerification(
       pengguna.email,

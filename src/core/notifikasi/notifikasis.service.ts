@@ -1,10 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
-import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from "bullmq";
+import { Prisma, TipeNotifikasi, Peran } from "@prisma/client";
 
 import { PrismaService } from "../../infrastructure/database/prisma.service";
-import { RedisService } from "../../infrastructure/redis/redis.service";
+import { NotifSseService } from "./notifikasis.sse.service";
 import { BroadcastNotifDto } from "./dto/broadcast-notif.dto";
 
 @Injectable()
@@ -13,8 +11,7 @@ export class NotificationsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redisService: RedisService,
-    @InjectQueue("notifikasi") private readonly notifQueue: Queue,
+    private readonly sseService: NotifSseService,
   ) {}
 
   async findByUser(
@@ -26,17 +23,7 @@ export class NotificationsService {
     const l = Math.max(1, Number(limit) || 20);
     const skip = (p - 1) * l;
     
-    const redisClient = this.redisService.getClient();
-    const cacheKey = `notif:unread:${penggunaId}`;
-    let unreadCount = 0;
-    const cachedUnread = await redisClient.get(cacheKey);
-
-    if (cachedUnread) {
-      unreadCount = parseInt(cachedUnread, 10);
-    } else {
-      unreadCount = await this.prisma.notifikasi.count({ where: { penggunaId, isRead: false } });
-      await redisClient.setex(cacheKey, 300, unreadCount); // 5 mins cache
-    }
+    const unreadCount = await this.prisma.notifikasi.count({ where: { penggunaId, isRead: false } });
 
     const [data, total] = await Promise.all([
       this.prisma.notifikasi.findMany({
@@ -63,7 +50,6 @@ export class NotificationsService {
       where: { id, penggunaId },
       data: { isRead: true },
     });
-    await this.redisService.getClient().del(`notif:unread:${penggunaId}`);
     return res;
   }
 
@@ -72,7 +58,6 @@ export class NotificationsService {
       where: { penggunaId, isRead: false },
       data: { isRead: true },
     });
-    await this.redisService.getClient().del(`notif:unread:${penggunaId}`);
     return res;
   }
 
@@ -85,18 +70,86 @@ export class NotificationsService {
       data?: Record<string, unknown>;
     },
   ) {
-    await this.redisService.getClient().del(`notif:unread:${penggunaId}`);
-    return this.notifQueue.add("createNotif", {
-      penggunaId,
-      ...payload,
-      payloadData: payload.data,
+    const notif = await this.prisma.notifikasi.create({
+      data: {
+        penggunaId,
+        judul: payload.judul,
+        pesan: payload.pesan,
+        tipe: payload.tipe as TipeNotifikasi,
+        data: payload.data ? (payload.data as Prisma.InputJsonValue) : Prisma.JsonNull,
+      },
     });
+
+    this.sseService.emitToUser(penggunaId, {
+      id: notif.id,
+      penggunaId: notif.penggunaId,
+      judul: notif.judul,
+      pesan: notif.pesan,
+      tipe: notif.tipe,
+      isRead: notif.isRead,
+      createdAt: notif.createdAt,
+    });
+
+    return notif;
   }
 
   async createBroadcast(dto: BroadcastNotifDto) {
-    return this.notifQueue.add("broadcastNotif", {
-      ...dto,
-      payloadData: dto.data,
+    const { judul, pesan, target, data: payloadData } = dto;
+    let targetUsers: { id: string }[] = [];
+
+    // Parse target
+    if (target === 'ALL_USER') {
+      targetUsers = await this.prisma.pengguna.findMany({
+        where: { peran: 'KONSUMEN' },
+        select: { id: true },
+      });
+    } else if (target === 'ALL_OPERASIONAL') {
+      targetUsers = await this.prisma.pengguna.findMany({
+        where: {
+          peran: {
+            in: ['PENJUAL', 'KURIR', 'ADMIN_CS', 'SUPER_ADMIN'],
+          },
+        },
+        select: { id: true },
+      });
+    } else if (target.startsWith('ROLE:')) {
+      const role = target.replace('ROLE:', '') as Peran;
+      targetUsers = await this.prisma.pengguna.findMany({
+        where: { peran: role },
+        select: { id: true },
+      });
+    } else if (target.startsWith('USER:')) {
+      const userId = target.replace('USER:', '');
+      targetUsers = [{ id: userId }];
+    }
+
+    if (targetUsers.length === 0) {
+      return { sent: 0 };
+    }
+
+    const batchedData = targetUsers.map((u) => ({
+      penggunaId: u.id,
+      judul,
+      pesan,
+      tipe: TipeNotifikasi.BROADCAST,
+      data: payloadData ? (payloadData as Prisma.InputJsonValue) : Prisma.JsonNull,
+    }));
+
+    await this.prisma.notifikasi.createMany({
+      data: batchedData,
     });
+
+    const ssePayload = {
+      judul,
+      pesan,
+      tipe: TipeNotifikasi.BROADCAST,
+      isRead: false,
+      createdAt: new Date(),
+    };
+
+    const userIds = targetUsers.map((u) => u.id);
+    this.sseService.emitToUsers(userIds, ssePayload);
+
+    return { sent: userIds.length };
   }
 }

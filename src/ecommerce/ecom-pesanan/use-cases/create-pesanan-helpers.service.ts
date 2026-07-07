@@ -1,6 +1,4 @@
 import { Injectable, BadRequestException, Logger } from "@nestjs/common";
-import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from "bullmq";
 
 import { ProdukEcomsRepository } from "../../ecom-produk/repositories/ecom-produks.repository";
 import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository";
@@ -32,7 +30,6 @@ export class CreateOrderHelpersService {
     private readonly profitReportService: ProfitReportService,
     private readonly notificationsService: NotificationsService,
     private readonly xenditService: XenditService,
-    @InjectQueue("order") private readonly orderQueue: Queue,
   ) {}
 
   // ──────────────────────────────────────────────────────────
@@ -304,18 +301,23 @@ export class CreateOrderHelpersService {
   // ──────────────────────────────────────────────────────────
   async scheduleAutoCancels(orderIds: string[]): Promise<void> {
     for (const orderId of orderIds) {
-      try {
-        await this.orderQueue.add(
-          "cancelUnpaidOrder",
-          { orderId },
-          { delay: 24 * 60 * 60 * 1000 },
-        );
-      } catch (err) {
-        this.logger.error(
-          `Failed to schedule auto-cancel for order ${orderId}:`,
-          err,
-        );
-      }
+      setTimeout(async () => {
+        try {
+          this.logger.debug(`Checking if order ${orderId} needs to be canceled...`);
+          const order = await this.ordersRepo.findUnique({ where: { id: orderId } });
+          if (!order) return;
+          if (order.status === "MENUNGGU_BAYAR") {
+            this.logger.log(`Auto-canceling unpaid order ${orderId}`);
+            await this.prisma.pesananEcom.update({
+              where: { id: orderId },
+              data: { status: "DIBATALKAN" },
+            });
+            this.logger.log(`Successfully canceled order ${orderId}`);
+          }
+        } catch (err) {
+          this.logger.error(`Failed auto-cancel order ${orderId}:`, err);
+        }
+      }, 24 * 60 * 60 * 1000); // 24 hours
     }
   }
 }

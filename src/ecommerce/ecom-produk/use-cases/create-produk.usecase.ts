@@ -1,13 +1,12 @@
 import { Injectable } from "@nestjs/common";
 
 import { ProdukEcomsRepository } from "../repositories/ecom-produks.repository";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
+
 
 @Injectable()
 export class CreateProductUseCase {
   constructor(
     private readonly productsRepo: ProdukEcomsRepository,
-    private readonly redisService: RedisService,
   ) {}
 
   async execute(
@@ -71,8 +70,7 @@ export class CreateProductUseCase {
       });
     }
 
-    // Invalidate product list cache
-    await this.redisService.invalidateByPrefix("products:list");
+
 
     return produk;
   }

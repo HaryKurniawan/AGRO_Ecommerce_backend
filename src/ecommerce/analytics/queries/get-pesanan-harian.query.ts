@@ -24,6 +24,14 @@ export class GetPesananHarianQuery {
         status: true,
         createdAt: true,
         konsumen: { select: { id: true, nama: true } },
+        item: {
+          select: {
+            id: true,
+            jumlah: true,
+            harga: true,
+            produk: { select: { id: true, nama: true, gambarUrl: true } }
+          }
+        }
       },
       orderBy: { createdAt: "desc" },
     });

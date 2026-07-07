@@ -4,14 +4,13 @@ import { Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { EmailService } from "../../../common/services/email.service";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
+
 
 @Injectable()
 export class ForgotPasswordUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
-    private readonly redisService: RedisService,
   ) {}
 
   async execute(email: string) {
@@ -28,13 +27,16 @@ export class ForgotPasswordUseCase {
 
     const resetToken = randomBytes(32).toString("hex");
 
-    // Simpan token ke Redis dengan TTL 1 jam (3600 detik)
-    await this.redisService.getClient().set(
-      `password:reset:${resetToken}`,
-      pengguna.id,
-      "EX",
-      3600,
-    );
+    const kadaluarsaTokenReset = new Date();
+    kadaluarsaTokenReset.setHours(kadaluarsaTokenReset.getHours() + 1);
+
+    await this.prisma.pengguna.update({
+      where: { id: pengguna.id },
+      data: {
+        tokenResetKataSandi: resetToken,
+        kadaluarsaTokenReset,
+      },
+    });
 
     await this.emailService.sendPasswordReset(
       pengguna.email,

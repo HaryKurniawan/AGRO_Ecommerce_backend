@@ -5,7 +5,6 @@ import { FindOrderByIdUseCase } from "./find-pesanan-by-id.usecase";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { ProfitReportService } from "../../profit-report/profit-report.service";
 import { StatusPesananEcom } from "@prisma/client";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
 
 @Injectable()
 export class UpdateOrderStatusUseCase {
@@ -14,7 +13,6 @@ export class UpdateOrderStatusUseCase {
     private readonly findOrderById: FindOrderByIdUseCase,
     private readonly eventEmitter: EventEmitter2,
     private readonly profitReportService: ProfitReportService,
-    private readonly redisService: RedisService,
   ) {}
 
   async execute(id: string, status: string, fotoSebelumKirimUrl?: string) {
@@ -71,10 +69,7 @@ export class UpdateOrderStatusUseCase {
       status: updatedOrder.status,
       tokoId: (updatedOrder as any).tokoId,
     };
-    
-    // Publish ke Redis untuk multi-instance SSE
-    this.redisService.getClient().publish("order:updates", JSON.stringify(payload));
-    
+
     // Tetap emit lokal (opsional, jika ada logic internal yang listen event ini)
     this.eventEmitter.emit("order.status.updated", payload);
 

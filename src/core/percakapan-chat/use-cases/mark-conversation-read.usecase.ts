@@ -16,13 +16,12 @@ import {
 } from "@nestjs/common";
 
 import { ChatRepository } from "../repositories/chat.repository";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
+
 
 @Injectable()
 export class MarkConversationReadUseCase {
   constructor(
     private readonly chatRepo: ChatRepository,
-    private readonly redisService: RedisService,
   ) {}
 
   async execute(percakapanId: string, penggunaId: string, isAdmin = false) {
@@ -52,8 +51,7 @@ export class MarkConversationReadUseCase {
       data: { sudahDibaca: true },
     });
 
-    // Invalidate unread cache for this user
-    await this.redisService.getClient().del(`chat:unread:${penggunaId}`);
+
 
     return {
       success: true,

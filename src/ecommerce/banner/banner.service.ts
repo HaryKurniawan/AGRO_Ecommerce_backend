@@ -1,29 +1,18 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../infrastructure/database/prisma.service";
-import { RedisService } from "../../infrastructure/redis/redis.service";
 
 @Injectable()
 export class BannerService {
-  private readonly CACHE_KEY = "banners:public";
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redis: RedisService
   ) {}
 
   async findAllPublic() {
-    const cached = await this.redis.getClient().get(this.CACHE_KEY);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-
     const banners = await this.prisma.bannerPromo.findMany({
       where: { isAktif: true },
       orderBy: { urutan: "asc" },
     });
-
-    // Cache for 1 hour (3600 seconds)
-    await this.redis.getClient().setex(this.CACHE_KEY, 3600, JSON.stringify(banners));
 
     return banners;
   }
@@ -34,9 +23,6 @@ export class BannerService {
     });
   }
 
-  private async invalidateCache() {
-    await this.redis.getClient().del(this.CACHE_KEY);
-  }
 
   async create(data: any) {
     // Cari urutan terakhir
@@ -52,7 +38,7 @@ export class BannerService {
       },
     });
 
-    await this.invalidateCache();
+
     return banner;
   }
 
@@ -67,7 +53,7 @@ export class BannerService {
       data,
     });
 
-    await this.invalidateCache();
+
     return updated;
   }
 
@@ -81,7 +67,7 @@ export class BannerService {
       where: { id },
     });
 
-    await this.invalidateCache();
+
     return deleted;
   }
 
@@ -94,7 +80,7 @@ export class BannerService {
     );
     await this.prisma.$transaction(transaction);
     
-    await this.invalidateCache();
+
     return { success: true };
   }
 }

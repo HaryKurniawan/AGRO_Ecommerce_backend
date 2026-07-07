@@ -4,7 +4,7 @@ import { ConfigService } from "@nestjs/config";
 
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { EmailService } from "../../../common/services/email.service";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
+
 
 @Injectable()
 export class VerifyEmailUseCase {
@@ -13,25 +13,21 @@ export class VerifyEmailUseCase {
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
-    private readonly redisService: RedisService,
   ) {}
 
   async execute(token: string) {
-    const penggunaId = await this.redisService.getClient().get(`email:verify:${token}`);
-
-    if (!penggunaId) {
-      throw new BadRequestException(
-        "Token verifikasi tidak valid atau sudah kadaluarsa. Silakan daftar ulang atau minta kirim ulang.",
-      );
-    }
-
-    const pengguna = await this.prisma.pengguna.findUnique({
-      where: { id: penggunaId },
+    const pengguna = await this.prisma.pengguna.findFirst({
+      where: {
+        tokenVerifikasiEmail: token,
+        kadaluarsaTokenEmail: {
+          gt: new Date(),
+        },
+      },
       include: { profilPenjual: { include: { toko: true } } },
     });
 
     if (!pengguna) {
-      throw new BadRequestException("Pengguna tidak ditemukan.");
+      throw new BadRequestException("Token verifikasi tidak valid atau sudah kadaluarsa. Silakan daftar ulang atau minta kirim ulang.");
     }
 
     if (pengguna.emailTerverifikasiPada) {
@@ -49,8 +45,7 @@ export class VerifyEmailUseCase {
       },
     });
 
-    // Hapus token dari Redis
-    await this.redisService.getClient().del(`email:verify:${token}`);
+
 
     // Jika seller, otomatis aktifkan profil penjual
     if (pengguna.peran === "PENJUAL" && pengguna.profilPenjual) {

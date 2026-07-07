@@ -2,22 +2,17 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 
 import { ProdukEcomsRepository } from "../repositories/ecom-produks.repository";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
+
 
 @Injectable()
 export class FindProductByIdUseCase {
   constructor(
     private readonly productsRepo: ProdukEcomsRepository,
     private readonly prisma: PrismaService,
-    private readonly redisService: RedisService,
   ) {}
 
   async execute(id: string) {
-    const cacheKey = `products:detail:${id}`;
-    const cached = await this.redisService.getClient().get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
+
     const produk = await this.productsRepo.findUnique({
       where: { id },
       include: {
@@ -88,8 +83,7 @@ export class FindProductByIdUseCase {
       (produk.toko as any).banner = produk.toko.bannerUrl;
     }
 
-    // Cache for 10 minutes
-    await this.redisService.getClient().set(cacheKey, JSON.stringify(produk), "EX", 600);
+
 
     return produk;
   }

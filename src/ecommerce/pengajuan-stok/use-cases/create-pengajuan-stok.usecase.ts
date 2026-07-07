@@ -24,6 +24,7 @@ export class CreatePengajuanStokUseCase {
         ukuranKemasanKg?: number;
         jumlahKemasan?: number;
         totalKg?: number;
+        kemasanDetail?: { ukuranKg: number; jumlahKemasan: number }[];
       }[];
     },
   ) {
@@ -88,6 +89,9 @@ export class CreatePengajuanStokUseCase {
             item.jumlahKemasan !== undefined
               ? Number(item.jumlahKemasan)
               : null,
+          totalKg:
+            item.totalKg !== undefined ? Number(item.totalKg) : null,
+          kemasanDetail: item.kemasanDetail ?? null,
         };
       } catch (error) {
         console.error(`Error fetching product ${item.produkGudangId}:`, error);
@@ -118,6 +122,17 @@ export class CreatePengajuanStokUseCase {
             jumlahPermintaan: item.jumlahPermintaan,
             ukuranKemasanKg: item.ukuranKemasanKg,
             jumlahKemasan: item.jumlahKemasan,
+            // Simpan detail kemasan (1kg / 2.5kg) ke DB ecommerce
+            ...(item.kemasanDetail && item.kemasanDetail.length > 0
+              ? {
+                  kemasanDetail: {
+                    create: item.kemasanDetail.map((k) => ({
+                      ukuranKg: Number(k.ukuranKg),
+                      jumlahKemasan: Number(k.jumlahKemasan),
+                    })),
+                  },
+                }
+              : {}),
           })),
         },
       },
@@ -141,7 +156,11 @@ export class CreatePengajuanStokUseCase {
           gudangId: data.gudangId,
           catatan: data.catatan,
           modePengemasan: mode,
-          items: productDetails,
+          items: productDetails.map((item) => ({
+            ...item,
+            // kemasanDetail sudah ada di dalam productDetails, pastikan dikirim
+            kemasanDetail: item.kemasanDetail ?? undefined,
+          })),
         },
       },
       { attempts: 5, backoff: { delay: 2000 } },

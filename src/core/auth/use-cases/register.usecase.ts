@@ -7,7 +7,6 @@ import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { hashPassword } from "../../../common/utils/hash.util";
 import { EmailService } from "../../../common/services/email.service";
 import { RegisterDto } from "../dto/register.dto";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
 
 @Injectable()
 export class RegisterUseCase {
@@ -15,7 +14,6 @@ export class RegisterUseCase {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
-    private readonly redisService: RedisService,
   ) {}
 
   async execute(dto: RegisterDto) {
@@ -39,18 +37,10 @@ export class RegisterUseCase {
         nama: dto.nama,
         peran: dto.peran || "KONSUMEN",
         // Set legacy fields to null
-        tokenVerifikasiEmail: null,
-        kadaluarsaTokenEmail: null,
+        tokenVerifikasiEmail: verifyToken,
+        kadaluarsaTokenEmail: new Date(Date.now() + 86400 * 1000), // 24 hours
       },
     });
-
-    // Simpan token ke Redis dengan TTL 24 jam (86400 detik)
-    await this.redisService.getClient().set(
-      `email:verify:${verifyToken}`,
-      pengguna.id,
-      "EX",
-      86400,
-    );
 
     // Kirim email verifikasi
     await this.emailService.sendEmailVerification(

@@ -1,20 +1,45 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from "bullmq";@Injectable()
+import { Resend } from "resend";
+import {
+  getEmailVerificationTemplate,
+  getPasswordResetTemplate,
+  getOrderArrivedTemplate,
+  getCourierTaskTemplate,
+  getAdminWelcomeTemplate,
+  getSellerActivatedTemplate,
+} from "./email-templates";
+
+@Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private readonly frontendUrl: string;
   private readonly frontendOperasionalUrl: string;
+  private readonly resend: Resend;
+  private readonly fromEmail: string;
 
-  constructor(
-    private readonly config: ConfigService,
-    @InjectQueue("email") private readonly emailQueue: Queue,
-  ) {
+  constructor(private readonly config: ConfigService) {
     this.frontendUrl = this.config.getOrThrow<string>("FRONTEND_URL");
     this.frontendOperasionalUrl = this.config.getOrThrow<string>(
       "FRONTEND_OPERASIONAL_URL",
     );
+    this.resend = new Resend(this.config.getOrThrow<string>("RESEND_API_KEY"));
+    this.fromEmail =
+      this.config.get<string>("EMAIL_FROM") || "noreply@agrojabar.id";
+  }
+
+  private async sendEmail(to: string, subject: string, html: string) {
+    try {
+      await this.resend.emails.send({
+        from: this.fromEmail,
+        to,
+        subject,
+        html,
+      });
+      this.logger.log(`Email successfully sent to ${to}`);
+    } catch (err) {
+      this.logger.error(`Failed to send email to ${to}`, err);
+    }
   }
 
   async sendAdminCreatedWelcomeEmail(
@@ -26,22 +51,19 @@ export class EmailService {
     token: string,
   ): Promise<void> {
     const verifyUrl = `${this.frontendOperasionalUrl}/register/verify-confirm?token=${token}`;
-
     try {
-      await this.emailQueue.add("sendAdminCreatedWelcomeEmail", {
-        email,
+      const template = getAdminWelcomeTemplate(
         nama,
-        peran,
+        email,
         kataSandiPlain,
         noTelepon,
-        token,
+        peran,
         verifyUrl,
-      });
-      this.logger.log(
-        `Job sendAdminCreatedWelcomeEmail added to queue for ${email}`,
       );
+      this.sendEmail(email, template.subject, template.html);
+      this.logger.log(`Welcome email triggered for ${email}`);
     } catch (err) {
-      this.logger.error("Failed to add sendAdminCreatedWelcomeEmail to queue", err);
+      this.logger.error("Failed to trigger sendAdminCreatedWelcomeEmail", err);
     }
   }
 
@@ -54,16 +76,12 @@ export class EmailService {
     const baseUrl =
       peran === "KONSUMEN" ? this.frontendUrl : this.frontendOperasionalUrl;
     const verifyUrl = `${baseUrl}/register/verify-confirm?token=${token}`;
-
     try {
-      await this.emailQueue.add("sendEmailVerification", {
-        email,
-        nama,
-        verifyUrl,
-      });
-      this.logger.log(`Job sendEmailVerification added to queue for ${email}`);
+      const template = getEmailVerificationTemplate(nama, verifyUrl);
+      this.sendEmail(email, template.subject, template.html);
+      this.logger.log(`Verification email triggered for ${email}`);
     } catch (err) {
-      this.logger.error("Failed to add sendEmailVerification to queue", err);
+      this.logger.error("Failed to trigger sendEmailVerification", err);
     }
   }
 
@@ -76,16 +94,12 @@ export class EmailService {
     const baseUrl =
       peran === "KONSUMEN" ? this.frontendUrl : this.frontendOperasionalUrl;
     const resetUrl = `${baseUrl}/forgot-password/reset?token=${token}`;
-
     try {
-      await this.emailQueue.add("sendPasswordReset", {
-        email,
-        nama,
-        resetUrl,
-      });
-      this.logger.log(`Job sendPasswordReset added to queue for ${email}`);
+      const template = getPasswordResetTemplate(nama, resetUrl);
+      this.sendEmail(email, template.subject, template.html);
+      this.logger.log(`Password reset email triggered for ${email}`);
     } catch (err) {
-      this.logger.error("Failed to add sendPasswordReset to queue", err);
+      this.logger.error("Failed to trigger sendPasswordReset", err);
     }
   }
 
@@ -96,17 +110,11 @@ export class EmailService {
     note?: string,
   ): Promise<void> {
     try {
-      await this.emailQueue.add("sendCourierTaskNotification", {
-        email,
-        courierName,
-        orderId,
-        note,
-      });
-      this.logger.log(
-        `Job sendCourierTaskNotification added to queue for ${email}`,
-      );
+      const template = getCourierTaskTemplate(courierName, orderId, note);
+      this.sendEmail(email, template.subject, template.html);
+      this.logger.log(`Courier task notification triggered for ${email}`);
     } catch (err) {
-      this.logger.error("Failed to add sendCourierTaskNotification to queue", err);
+      this.logger.error("Failed to trigger sendCourierTaskNotification", err);
     }
   }
 
@@ -116,19 +124,12 @@ export class EmailService {
     orderId: string,
   ): Promise<void> {
     const orderUrl = `${this.frontendUrl}/dashboard/transaksi/${orderId}`;
-
     try {
-      await this.emailQueue.add("sendOrderArrivedNotification", {
-        email,
-        customerName,
-        orderId,
-        orderUrl,
-      });
-      this.logger.log(
-        `Job sendOrderArrivedNotification added to queue for ${email}`,
-      );
+      const template = getOrderArrivedTemplate(customerName, orderId, orderUrl);
+      this.sendEmail(email, template.subject, template.html);
+      this.logger.log(`Order arrived notification triggered for ${email}`);
     } catch (err) {
-      this.logger.error("Failed to add sendOrderArrivedNotification to queue", err);
+      this.logger.error("Failed to trigger sendOrderArrivedNotification", err);
     }
   }
 
@@ -140,18 +141,17 @@ export class EmailService {
     loginUrl: string,
   ): Promise<void> {
     try {
-      await this.emailQueue.add("sendSellerActivatedEmail", {
-        email,
+      const template = getSellerActivatedTemplate(
         nama,
+        email,
         namaToko,
         alamatToko,
         loginUrl,
-      });
-      this.logger.log(
-        `Job sendSellerActivatedEmail added to queue for ${email}`,
       );
+      this.sendEmail(email, template.subject, template.html);
+      this.logger.log(`Seller activated email triggered for ${email}`);
     } catch (err) {
-      this.logger.error("Failed to add sendSellerActivatedEmail to queue", err);
+      this.logger.error("Failed to trigger sendSellerActivatedEmail", err);
     }
   }
 }

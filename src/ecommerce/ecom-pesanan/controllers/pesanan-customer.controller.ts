@@ -9,7 +9,6 @@ import {
   UseGuards,
   Sse,
   MessageEvent,
-  OnModuleInit,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -20,7 +19,6 @@ import {
 import { Observable, fromEvent, interval, merge } from "rxjs";
 import { map } from "rxjs/operators";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
 
 import { SkipTransform } from "../../../common/decorators/skip-transform.decorator";
 import { JwtAuthGuard } from "../../../core/auth/guards/jwt-auth.guard";
@@ -34,7 +32,7 @@ import { CreateOrderDto } from "../dto/create-pesanan.dto";
 
 @ApiTags("Ecom Pesanan - Customer")
 @Controller("ecom-pesanan")
-export class PesananCustomerController implements OnModuleInit {
+export class PesananCustomerController {
   constructor(
     private readonly createOrderUC: CreateOrderUseCase,
     private readonly findUserOrdersUC: FindUserOrdersUseCase,
@@ -42,31 +40,8 @@ export class PesananCustomerController implements OnModuleInit {
     private readonly confirmPaymentUC: ConfirmPaymentUseCase,
     private readonly findOrderByIdUC: FindOrderByIdUseCase,
     private readonly eventEmitter: EventEmitter2,
-    private readonly redisService: RedisService,
   ) {}
 
-  onModuleInit() {
-    const subscriber = this.redisService.getSubscriber();
-    
-    // Subscribe ke channel global
-    subscriber.subscribe("order:updates", (err) => {
-      if (err) {
-        console.error("Failed to subscribe to order:updates", err);
-      }
-    });
-
-    // Translate message dari Redis menjadi event internal untuk SSE
-    subscriber.on("message", (channel, message) => {
-      if (channel === "order:updates") {
-        try {
-          const payload = JSON.parse(message);
-          this.eventEmitter.emit("order.status.updated.redis", payload);
-        } catch (err) {
-          console.error("Failed to parse order:updates message", err);
-        }
-      }
-    });
-  }
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -146,9 +121,8 @@ export class PesananCustomerController implements OnModuleInit {
   @ApiOperation({ summary: "Stream order status updates" })
   streamOrders(): Observable<MessageEvent> {
     const updatesLocal$ = fromEvent(this.eventEmitter, "order.status.updated");
-    const updatesRedis$ = fromEvent(this.eventEmitter, "order.status.updated.redis");
     
-    const updates$ = merge(updatesLocal$, updatesRedis$).pipe(
+    const updates$ = updatesLocal$.pipe(
       map((payload: any) => ({
         data: payload,
       })),

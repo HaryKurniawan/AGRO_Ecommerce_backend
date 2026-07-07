@@ -2,14 +2,12 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { GetCartUseCase } from "./get-keranjang.usecase";
-import { RedisService } from "../../../infrastructure/redis/redis.service";
 
 @Injectable()
 export class SyncCartUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly getCartUC: GetCartUseCase,
-    private readonly redisService: RedisService,
   ) {}
 
   async execute(
@@ -43,17 +41,39 @@ export class SyncCartUseCase {
       }
     }
 
-    const cartKey = `cart:${penggunaId}`;
-    const pipeline = this.redisService.getClient().pipeline();
+    const keranjang = await this.getCartUC.execute(penggunaId);
+
+    // Prepare operations
+    const operations = [];
 
     for (const item of items) {
-      const varianId = item.varianKemasanId || 'null';
-      const key = `${item.produkId}_${varianId}`;
-      pipeline.hincrby(cartKey, key, item.jumlah);
+      const varianId = item.varianKemasanId || null;
+      const existingItem = keranjang.item.find(
+        (i) => i.produkId === item.produkId && i.varianKemasanId === varianId
+      );
+
+      if (existingItem) {
+        operations.push(
+          this.prisma.itemKeranjangEcom.update({
+            where: { id: existingItem.id },
+            data: { jumlah: existingItem.jumlah + item.jumlah },
+          })
+        );
+      } else {
+        operations.push(
+          this.prisma.itemKeranjangEcom.create({
+            data: {
+              keranjangId: keranjang.id,
+              produkId: item.produkId,
+              varianKemasanId: varianId,
+              jumlah: item.jumlah,
+            },
+          })
+        );
+      }
     }
-    
-    pipeline.expire(cartKey, 604800); // 7 days
-    await pipeline.exec();
+
+    await this.prisma.$transaction(operations);
 
     return this.getCartUC.execute(penggunaId);
   }

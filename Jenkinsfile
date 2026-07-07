@@ -6,7 +6,7 @@ pipeline {
         
         APP_PORT = "${IS_PRODUCTION == 'true' ? '4000' : '4001'}"
         CONTAINER_NAME = "${IS_PRODUCTION == 'true' ? 'agro-backend' : 'agro-backend-staging'}"
-        ENV_CRED_ID = "${IS_PRODUCTION == 'true' ? 'agro-env' : 'agro-env-staging'}"
+        ENV_CRED_ID = "${IS_PRODUCTION == 'true' ? 'agro_env_backend' : 'agro-env-staging'}"
         IMAGE_NAME = "${CONTAINER_NAME}-image"
     }
 
@@ -18,12 +18,12 @@ pipeline {
                 echo "Building Test Environment..."
                 sh '''
                 cat << 'EOF' > Dockerfile.test
-FROM node:22-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-EOF
+                FROM node:22-alpine
+                WORKDIR /app
+                COPY package*.json ./
+                RUN npm install
+                COPY . .
+                EOF
                 docker build -t ${IMAGE_NAME}-test -f Dockerfile.test .
                 rm Dockerfile.test
                 '''

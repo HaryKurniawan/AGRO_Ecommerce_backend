@@ -52,6 +52,7 @@ export class PengajuanStokController {
         ukuranKemasanKg?: number;
         jumlahKemasan?: number;
         totalKg?: number;
+        kemasanDetail?: { ukuranKg: number; jumlahKemasan: number }[];
       }[];
     },
   ) {
