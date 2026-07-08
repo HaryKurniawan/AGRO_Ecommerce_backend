@@ -69,6 +69,19 @@ export class OverrideProdukHargaUseCase {
       data: updateData,
     });
 
+    if (updateData.harga !== undefined) {
+      await this.prisma.riwayatStokProduk.create({
+        data: {
+          produkId: product.id,
+          penggunaId: data.diubahOlehId,
+          tipe: "ADJUSTMENT",
+          kuantitas: 0,
+          stokAkhir: updatedProduct.stok,
+          catatan: `Perubahan harga menjadi Rp ${Number(updatedProduct.harga).toLocaleString("id-ID")}`,
+        },
+      });
+    }
+
     if (updateData.marginPersen !== undefined) {
       let activeMargin = updateData.marginPersen;
       if (activeMargin === null) {

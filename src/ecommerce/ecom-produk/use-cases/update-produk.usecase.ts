@@ -11,7 +11,7 @@ export class UpdateProductUseCase {
     private readonly findProductByIdUC: FindProductByIdUseCase,
   ) {}
 
-  async execute(id: string, data: Record<string, unknown>) {
+  async execute(id: string, data: Record<string, unknown>, penggunaId?: string) {
     const product = await this.productsRepo.findUnique({
       where: { id },
       include: {
@@ -70,6 +70,19 @@ export class UpdateProductUseCase {
       where: { id },
       data: safeData,
     });
+
+    if (penggunaId && "harga" in safeData) {
+      await this.productsRepo.createStockHistory({
+        data: {
+          produkId: id,
+          penggunaId,
+          tipe: "ADJUSTMENT",
+          kuantitas: 0,
+          stokAkhir: updated.stok,
+          catatan: `Perubahan harga menjadi Rp ${Number(safeData.harga).toLocaleString("id-ID")}`,
+        },
+      });
+    }
 
     // Invalidate caches
 

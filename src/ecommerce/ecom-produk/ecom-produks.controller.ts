@@ -178,8 +178,9 @@ export class EcomProductsController {
   async update(
     @Param("id") id: string,
     @Body() payload: UpdateProductDto,
+    @CurrentUser("sub") penggunaId: string,
   ): Promise<any> {
-    return this.updateUC.execute(id, payload as any);
+    return this.updateUC.execute(id, payload as any, penggunaId);
   }
 
   @UseGuards(JwtAuthGuard)
