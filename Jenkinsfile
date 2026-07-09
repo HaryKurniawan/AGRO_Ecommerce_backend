@@ -78,6 +78,18 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
+# Install all dependencies (including dev) to build the app
+RUN npm ci --ignore-scripts
+RUN npx prisma generate
+COPY . .
+# Build the NestJS app to produce the /dist folder
+RUN npm run build
+
+FROM node:22-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+COPY prisma ./prisma/
+# Install only production dependencies
 RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 RUN npx prisma generate
 
@@ -86,13 +98,13 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nestjs
 
-# Copy dependencies and prisma
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
+# Copy production node_modules from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/prisma ./prisma
 
-# Copy source code and build
-COPY . .
-RUN npm run build
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
 
 # Create public/uploads directory
 RUN mkdir -p /app/public/uploads
