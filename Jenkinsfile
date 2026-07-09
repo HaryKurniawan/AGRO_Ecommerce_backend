@@ -37,15 +37,15 @@ pipeline {
                 echo "Building NestJS Test Environment for ${DEPLOY_ENV}..."
                 sh '''
                 cat << 'EOF' > Dockerfile.test
-                FROM node:22-alpine
-                WORKDIR /app
-                COPY package*.json ./
-                COPY prisma ./prisma/
-                RUN npm ci
-                RUN npx prisma generate
-                COPY . .
-                RUN npm run build
-                EOF
+FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+COPY prisma ./prisma/
+RUN npm ci
+RUN npx prisma generate
+COPY . .
+RUN npm run build
+EOF
                 docker build -t ${IMAGE_NAME}-test -f Dockerfile.test .
                 rm Dockerfile.test
                 '''
