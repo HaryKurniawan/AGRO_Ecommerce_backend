@@ -9,6 +9,7 @@ import { FindOrderByIdUseCase } from "./find-pesanan-by-id.usecase";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { EmailService } from "../../../common/services/email.service";
+import { WhatsappService } from "../../../infrastructure/whatsapp/whatsapp.service";
 
 @Injectable()
 export class UpdateShippingStatusUseCase {
@@ -18,6 +19,7 @@ export class UpdateShippingStatusUseCase {
     private readonly eventEmitter: EventEmitter2,
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   async execute(
@@ -94,15 +96,25 @@ export class UpdateShippingStatusUseCase {
       });
     }
 
-    // When status is ARRIVED (Sampai Tujuan) → send order arrived email to consumer
+    // When status is ARRIVED (Sampai Tujuan) → send order arrived email & WA to consumer
     if (nextStatus === "ARRIVED") {
-      const email = (pesanan as any).konsumen?.email;
-      const nama = (pesanan as any).konsumen?.nama || "Pelanggan";
+      const konsumen = (pesanan as any).konsumen;
+      const email = konsumen?.email;
+      const nama = konsumen?.nama || "Pelanggan";
+      const noTelepon = konsumen?.noTelepon;
+
       if (email) {
         await this.emailService.sendOrderArrivedNotification(
           email,
           nama,
           pesananId,
+        );
+      }
+
+      if (noTelepon) {
+        await this.whatsappService.sendMessage(
+          noTelepon,
+          `*AGRO JABAR*\n\nHalo ${nama},\n\nPesanan Anda dengan ID *#${pesananId}* telah tiba di tujuan (Sampai Tujuan). Silakan cek pesanan Anda.\n\nTerima kasih telah berbelanja di Agro Jabar!`
         );
       }
     }

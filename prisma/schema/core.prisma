@@ -12,6 +12,9 @@ model Pengguna {
   emailTerverifikasiPada DateTime?
   tokenVerifikasiEmail   String? // Token OTP atau token link verifikasi
   kadaluarsaTokenEmail   DateTime? // Kapan token kadaluarsa
+  noTeleponTerverifikasiPada DateTime? // Kapan WA diverifikasi
+  otpWhatsapp            String? // Token OTP WA
+  kadaluarsaOtpWhatsapp  DateTime? // Kapan OTP WA kadaluarsa
   googleId               String?   @unique // ID dari Google OAuth
   tokenResetKataSandi    String? // Token untuk reset password
   kadaluarsaTokenReset   DateTime? // Kapan token reset kadaluarsa

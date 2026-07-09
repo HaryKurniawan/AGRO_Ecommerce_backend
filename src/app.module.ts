@@ -16,6 +16,7 @@ import jwtConfig from "./config/jwt.config";
 import { PrismaModule } from "./infrastructure/database/prisma.module";
 import { LoggerModule } from "./infrastructure/logger/logger.module";
 import { MonitoringModule } from "./infrastructure/monitoring/monitoring.module";
+import { WhatsappModule } from "./infrastructure/whatsapp/whatsapp.module";
 // Core Modules
 import { AuthModule } from "./core/auth/auth.module";
 import { UsersModule } from "./core/pengguna/pengguna.module";
@@ -74,6 +75,7 @@ import { DeliveryBatchModule } from "./ecommerce/delivery-batch/delivery-batch.m
     PrismaModule,
     LoggerModule,
     MonitoringModule,
+    WhatsappModule,
 
     // Shared Services (Global)
     CommonModule,

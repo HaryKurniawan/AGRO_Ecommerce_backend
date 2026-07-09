@@ -36,9 +36,9 @@ export class LoginUseCase {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    if (!pengguna.emailTerverifikasiPada) {
+    if (!pengguna.emailTerverifikasiPada || !pengguna.noTeleponTerverifikasiPada) {
       throw new UnauthorizedException(
-        "Email belum diverifikasi. Silakan cek inbox email Anda.",
+        "Akun Anda belum terverifikasi sepenuhnya. Silakan selesaikan verifikasi Email dan WhatsApp Anda.",
       );
     }
 
