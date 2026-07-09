@@ -99,7 +99,7 @@ EOF
                     
                     echo "🗄️ Menyiapkan Database Schema..."
                     sleep 5
-                    docker exec ${CONTAINER_NAME} npx prisma db push
+                    # docker exec ${CONTAINER_NAME} npx prisma db push
                     
                     echo "✅ Deploy Berhasil di Port ${APP_PORT}!"
                     '''
