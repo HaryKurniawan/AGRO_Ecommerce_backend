@@ -6,7 +6,7 @@
     "build": "nest build",
     "dev": "nest start --watch",
     "start": "nest start",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main",
     "start:debug": "nest start --debug --watch",
     "lint": "eslint . --max-warnings 9999",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
