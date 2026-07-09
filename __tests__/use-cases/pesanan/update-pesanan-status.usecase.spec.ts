@@ -7,8 +7,6 @@ describe("UpdateOrderStatusUseCase", () => {
   let findOrderByIdMock: any;
   let eventEmitterMock: any;
   let profitReportServiceMock: any;
-  let redisServiceMock: any;
-  let redisClientMock: any;
 
   beforeEach(() => {
     ordersRepoMock = {
@@ -28,20 +26,11 @@ describe("UpdateOrderStatusUseCase", () => {
       handleOrderCancellation: vi.fn()
     };
 
-    redisClientMock = {
-      publish: vi.fn()
-    };
-
-    redisServiceMock = {
-      getClient: vi.fn().mockReturnValue(redisClientMock)
-    };
-
     useCase = new UpdateOrderStatusUseCase(
       ordersRepoMock as any,
       findOrderByIdMock as any,
       eventEmitterMock as any,
-      profitReportServiceMock as any,
-      redisServiceMock as any
+      profitReportServiceMock as any
     );
   });
 
@@ -63,12 +52,6 @@ describe("UpdateOrderStatusUseCase", () => {
     
     // Cancellation should NOT be called
     expect(profitReportServiceMock.handleOrderCancellation).not.toHaveBeenCalled();
-
-    // Redis Pub/Sub check
-    expect(redisClientMock.publish).toHaveBeenCalledWith(
-      "order:updates", 
-      JSON.stringify({ orderId: "order-1", status: "DIPROSES", tokoId: "toko-1" })
-    );
 
     // Event emitter check
     expect(eventEmitterMock.emit).toHaveBeenCalledWith("order.status.updated", {
