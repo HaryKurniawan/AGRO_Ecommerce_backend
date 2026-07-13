@@ -24,23 +24,27 @@ export class GetPertumbuhanProdukQuery {
 
     const whereBase = {
       tokoId: filters.tokoId,
-      statusPesanan: "SELESAI" as const,
+      status: "SELESAI" as const,
     };
 
     const [txA, txB] = await Promise.all([
-      this.prisma.transaksiKeuntungan.findMany({
+      this.prisma.itemPesananEcom.findMany({
         where: {
-          ...whereBase,
-          tanggalTransaksi: { gte: periodeAStart, lte: periodeAEnd },
+          pesanan: {
+            ...whereBase,
+            updatedAt: { gte: periodeAStart, lte: periodeAEnd },
+          }
         },
-        select: { produkId: true, jumlahTerjual: true, hargaJual: true },
+        select: { produkId: true, jumlah: true, harga: true, produk: { select: { beratGram: true } } },
       }),
-      this.prisma.transaksiKeuntungan.findMany({
+      this.prisma.itemPesananEcom.findMany({
         where: {
-          ...whereBase,
-          tanggalTransaksi: { gte: periodeBStart, lte: periodeBEnd },
+          pesanan: {
+            ...whereBase,
+            updatedAt: { gte: periodeBStart, lte: periodeBEnd },
+          }
         },
-        select: { produkId: true, jumlahTerjual: true, hargaJual: true },
+        select: { produkId: true, jumlah: true, harga: true, produk: { select: { beratGram: true } } },
       }),
     ]);
 
@@ -53,8 +57,9 @@ export class GetPertumbuhanProdukQuery {
         });
       }
       const agg = mapA.get(t.produkId);
-      agg._sum.jumlahTerjual += t.jumlahTerjual;
-      agg._sum.totalHargaJual += t.jumlahTerjual * Number(t.hargaJual);
+      const kg = (t.produk?.beratGram || 1000) / 1000;
+      agg._sum.jumlahTerjual += (t.jumlah * kg);
+      agg._sum.totalHargaJual += t.jumlah * t.harga;
     }
     const aggA = Array.from(mapA.values());
 
@@ -67,8 +72,9 @@ export class GetPertumbuhanProdukQuery {
         });
       }
       const agg = mapB.get(t.produkId);
-      agg._sum.jumlahTerjual += t.jumlahTerjual;
-      agg._sum.totalHargaJual += t.jumlahTerjual * Number(t.hargaJual);
+      const kg = (t.produk?.beratGram || 1000) / 1000;
+      agg._sum.jumlahTerjual += (t.jumlah * kg);
+      agg._sum.totalHargaJual += t.jumlah * t.harga;
     }
     const aggB = Array.from(mapB.values());
 

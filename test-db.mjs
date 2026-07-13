@@ -1,0 +1,1 @@
+import { PrismaClient } from '@prisma/client'; const prisma = new PrismaClient(); async function main() { const pengiriman = await prisma.pengirimanPesananEcom.findFirst({ where: { pesananId: 'c36ff438-a07b-4097-a84f-c4322a805378' }, select: { status: true, trackingHistory: true } }); console.log(JSON.stringify(pengiriman, null, 2)); } main();

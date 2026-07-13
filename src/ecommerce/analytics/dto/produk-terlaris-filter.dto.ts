@@ -61,14 +61,14 @@ export class ProdukTerlarisFilterDto {
 
   @ApiPropertyOptional({
     description: "Jumlah top produk per kategori",
-    default: 5,
+    default: 100,
   })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(1)
-  @Max(20)
-  limit?: number = 5;
+  @Max(1000)
+  limit?: number = 100;
 
   @ApiPropertyOptional({ enum: SortByEnum, default: SortByEnum.TERJUAL })
   @IsOptional()
@@ -151,13 +151,13 @@ export class TrenProdukBulananFilterDto {
   @IsNumber()
   year?: number;
 
-  @ApiPropertyOptional({ default: 10 })
+  @ApiPropertyOptional({ default: 100 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(1)
-  @Max(20)
-  limit?: number = 10;
+  @Max(1000)
+  limit?: number = 100;
 }
 
 export class PolaPenjualanFilterDto {

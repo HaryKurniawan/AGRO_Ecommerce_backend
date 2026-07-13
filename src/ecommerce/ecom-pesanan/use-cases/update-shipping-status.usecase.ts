@@ -101,7 +101,8 @@ export class UpdateShippingStatusUseCase {
       const konsumen = (pesanan as any).konsumen;
       const email = konsumen?.email;
       const nama = konsumen?.nama || "Pelanggan";
-      const noTelepon = konsumen?.noTelepon;
+      // Fallback to the phone number in their default address if not in profile
+      const noTelepon = konsumen?.noTelepon || (konsumen?.addresses && konsumen?.addresses[0]?.telepon);
 
       if (email) {
         await this.emailService.sendOrderArrivedNotification(
@@ -112,10 +113,13 @@ export class UpdateShippingStatusUseCase {
       }
 
       if (noTelepon) {
+        console.log(`[UpdateShipping] Sending WhatsApp notification to ${noTelepon} for order ${pesananId}`);
         await this.whatsappService.sendMessage(
           noTelepon,
           `*AGRO JABAR*\n\nHalo ${nama},\n\nPesanan Anda dengan ID *#${pesananId}* telah tiba di tujuan (Sampai Tujuan). Silakan cek pesanan Anda.\n\nTerima kasih telah berbelanja di Agro Jabar!`
         );
+      } else {
+        console.warn(`[UpdateShipping] Could not send WA notification for order ${pesananId}: no phone number found for consumer`);
       }
     }
 

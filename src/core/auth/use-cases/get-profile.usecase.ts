@@ -16,6 +16,8 @@ export class GetProfileUseCase {
         noTelepon: true,
         peran: true,
         createdAt: true,
+        noTeleponTerverifikasiPada: true,
+        emailTerverifikasiPada: true,
         profilPenjual: {
           include: {
             toko: {

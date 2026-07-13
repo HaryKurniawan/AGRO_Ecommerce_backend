@@ -1,0 +1,1 @@
+const fs = require('fs'); try { const creds = JSON.parse(fs.readFileSync('auth_info_baileys/creds.json')); console.log(creds.me ? 'Logged in as: ' + creds.me.id : 'Not logged in'); } catch (e) { console.log('Error reading creds', e.message); }

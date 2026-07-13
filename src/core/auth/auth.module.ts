@@ -13,6 +13,7 @@ import { CreateGuestSessionUseCase } from "./use-cases/create-guest-session.usec
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { VerifyEmailUseCase } from "./use-cases/verify-email.usecase";
 import { VerifyOtpUseCase } from "./use-cases/verify-otp.usecase";
+import { RequestOtpUseCase } from "./use-cases/request-otp.usecase";
 import { ResendVerificationUseCase } from "./use-cases/resend-verification.usecase";
 import { ForgotPasswordUseCase } from "./use-cases/forgot-password.usecase";
 import { ResetPasswordUseCase } from "./use-cases/reset-password.usecase";
@@ -47,6 +48,7 @@ import { EmailService } from "../../common/services/email.service";
     GoogleStrategy,
     VerifyEmailUseCase,
     VerifyOtpUseCase,
+    RequestOtpUseCase,
     ResendVerificationUseCase,
     ForgotPasswordUseCase,
     ResetPasswordUseCase,

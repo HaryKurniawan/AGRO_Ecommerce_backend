@@ -165,35 +165,50 @@ export class UpdatePengajuanStokStatusUseCase {
         `[UpdatePengajuanStokStatus] Mapping not found for item ${item.produkGudangId}. Attempting auto-creation.`,
       );
 
+      const fullName = item.varianProduk ? `${item.namaProduk} - ${item.varianProduk}` : item.namaProduk;
+
       let masterProduk = await this.prisma.masterProduk.findFirst({
-        where: { nama: item.namaProduk },
+        where: { nama: fullName },
       });
 
       if (!masterProduk) {
         console.log(
-          `[UpdatePengajuanStokStatus] Creating MasterProduk: ${item.namaProduk}`,
+          `[UpdatePengajuanStokStatus] Creating MasterProduk: ${fullName}`,
         );
 
-        let kategori = await this.prisma.kategoriToko.findFirst({
-          where: { nama: { in: ["Sayur & Buah", "Sayuran"] } },
-        });
+        let kategoriNama = "Sayuran";
+        try {
+          const gudangApiUrl = process.env.GUDANG_API_URL || "http://localhost:5005";
+          const res = await fetch(`${gudangApiUrl}/api/produk/affiliate?gudangId=${gudangId}`);
+          if (res.ok) {
+            const data = await res.json();
+            const gudangProduk = data.data?.products?.find((p: any) => p.id === item.produkGudangId);
+            if (gudangProduk && gudangProduk.kategori && gudangProduk.kategori.nama) {
+               kategoriNama = gudangProduk.kategori.nama;
+            }
+          }
+        } catch (e) {
+          console.error("Gagal mengambil kategori dari gudang:", e);
+        }
 
-        if (!kategori) kategori = await this.prisma.kategoriToko.findFirst();
+        let kategori = await this.prisma.kategoriToko.findFirst({
+          where: { nama: { equals: kategoriNama, mode: 'insensitive' } },
+        });
 
         if (!kategori) {
           kategori = await this.prisma.kategoriToko.create({
-            data: { nama: "Sayuran", icon: "🥬" },
+            data: { nama: kategoriNama, icon: "📦" },
           });
         }
 
         masterProduk = await this.prisma.masterProduk.create({
           data: {
-            nama: item.namaProduk,
-            slug: item.namaProduk
+            nama: fullName,
+            slug: fullName
               .toLowerCase()
               .replace(/\s+/g, "-")
               .replace(/[^a-z0-9-]/g, ""),
-            deskripsi: `${item.namaProduk} berkualitas dari gudang`,
+            deskripsi: `${fullName} berkualitas dari gudang`,
             kategoriId: kategori.id,
             satuan: item.satuan || "kg",
             allowCustomName: true,

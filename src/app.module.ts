@@ -7,6 +7,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { TransformInterceptor } from "./common/interceptors/transform.interceptor";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { MetricsInterceptor } from "./infrastructure/monitoring/metrics.interceptor";
+import { TestController } from "./test.controller";
 
 // Config
 import appConfig from "./config/app.config";
@@ -108,6 +109,7 @@ import { DeliveryBatchModule } from "./ecommerce/delivery-batch/delivery-batch.m
     ReviewsModule,
     DeliveryBatchModule,
   ],
+  controllers: [TestController],
   providers: [
     {
       provide: APP_GUARD,

@@ -24,6 +24,7 @@ import { UpdateProfileUseCase } from "./use-cases/update-profile.usecase";
 import { CreateGuestSessionUseCase } from "./use-cases/create-guest-session.usecase";
 import { VerifyEmailUseCase } from "./use-cases/verify-email.usecase";
 import { VerifyOtpUseCase } from "./use-cases/verify-otp.usecase";
+import { RequestOtpUseCase } from "./use-cases/request-otp.usecase";
 import { ResendVerificationUseCase } from "./use-cases/resend-verification.usecase";
 import { ForgotPasswordUseCase } from "./use-cases/forgot-password.usecase";
 import { ResetPasswordUseCase } from "./use-cases/reset-password.usecase";
@@ -49,6 +50,7 @@ export class AuthController {
     private readonly createGuestSessionUC: CreateGuestSessionUseCase,
     private readonly verifyEmailUC: VerifyEmailUseCase,
     private readonly verifyOtpUC: VerifyOtpUseCase,
+    private readonly requestOtpUC: RequestOtpUseCase,
     private readonly resendVerificationUC: ResendVerificationUseCase,
     private readonly forgotPasswordUC: ForgotPasswordUseCase,
     private readonly resetPasswordUC: ResetPasswordUseCase,
@@ -120,6 +122,12 @@ export class AuthController {
   @ApiOperation({ summary: "Verify OTP from WhatsApp" })
   async verifyOtp(@Body() payload: { email: string; otpCode: string }): Promise<any> {
     return this.verifyOtpUC.execute(payload.email, payload.otpCode);
+  }
+
+  @Post("request-otp")
+  @ApiOperation({ summary: "Request or resend OTP for WhatsApp" })
+  async requestOtp(@Body() payload: { email: string; noTelepon?: string }): Promise<any> {
+    return this.requestOtpUC.execute(payload.email, payload.noTelepon);
   }
 
   @Post("resend-verification")

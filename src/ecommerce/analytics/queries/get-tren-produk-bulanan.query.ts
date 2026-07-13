@@ -72,23 +72,27 @@ export class GetTrenProdukBulananQuery {
 
     const whereBase = {
       tokoId: filters.tokoId,
-      statusPesanan: "SELESAI" as const,
+      status: "SELESAI" as const,
     };
 
     const [txCurrent, txPrev] = await Promise.all([
-      this.prisma.transaksiKeuntungan.findMany({
+      this.prisma.itemPesananEcom.findMany({
         where: {
-          ...whereBase,
-          tanggalTransaksi: { gte: currentRange.gte, lte: currentRange.lte },
+          pesanan: {
+            ...whereBase,
+            updatedAt: { gte: currentRange.gte, lte: currentRange.lte },
+          }
         },
-        select: { produkId: true, jumlahTerjual: true, hargaJual: true, id: true },
+        select: { produkId: true, jumlah: true, harga: true, pesananId: true, produk: { select: { beratGram: true } } },
       }),
-      this.prisma.transaksiKeuntungan.findMany({
+      this.prisma.itemPesananEcom.findMany({
         where: {
-          ...whereBase,
-          tanggalTransaksi: { gte: prevRange.gte, lte: prevRange.lte },
+          pesanan: {
+            ...whereBase,
+            updatedAt: { gte: prevRange.gte, lte: prevRange.lte },
+          }
         },
-        select: { produkId: true, jumlahTerjual: true, hargaJual: true },
+        select: { produkId: true, jumlah: true, harga: true, produk: { select: { beratGram: true } } },
       }),
     ]);
 
@@ -98,31 +102,37 @@ export class GetTrenProdukBulananQuery {
         currentMap.set(t.produkId, {
           produkId: t.produkId,
           _sum: { jumlahTerjual: 0, totalHargaJual: 0 },
-          _count: { id: 0 },
+          _count: { id: new Set() },
         });
       }
       const agg = currentMap.get(t.produkId);
-      agg._sum.jumlahTerjual += t.jumlahTerjual;
-      agg._sum.totalHargaJual += t.jumlahTerjual * Number(t.hargaJual);
-      agg._count.id += 1;
+      const kg = (t.produk?.beratGram || 1000) / 1000;
+      const jumlahKg = t.jumlah * kg;
+      agg._sum.jumlahTerjual += jumlahKg;
+      agg._sum.totalHargaJual += t.jumlah * t.harga;
+      agg._count.id.add(t.pesananId);
     }
-    const aggCurrent = Array.from(currentMap.values())
-      .sort((a, b) => b._sum.jumlahTerjual - a._sum.jumlahTerjual)
+    const aggCurrent = Array.from(currentMap.values()).map(a => ({
+      ...a,
+      _count: { id: a._count.id.size }
+    })).sort((a, b) => b._sum.jumlahTerjual - a._sum.jumlahTerjual)
       .slice(0, limit);
 
-    const prevMapData = new Map<string, any>();
+    const prevMap = new Map<string, any>();
     for (const t of txPrev) {
-      if (!prevMapData.has(t.produkId)) {
-        prevMapData.set(t.produkId, {
+      if (!prevMap.has(t.produkId)) {
+        prevMap.set(t.produkId, {
           produkId: t.produkId,
           _sum: { jumlahTerjual: 0, totalHargaJual: 0 },
         });
       }
-      const agg = prevMapData.get(t.produkId);
-      agg._sum.jumlahTerjual += t.jumlahTerjual;
-      agg._sum.totalHargaJual += t.jumlahTerjual * Number(t.hargaJual);
+      const agg = prevMap.get(t.produkId);
+      const kg = (t.produk?.beratGram || 1000) / 1000;
+      const jumlahKg = t.jumlah * kg;
+      agg._sum.jumlahTerjual += jumlahKg;
+      agg._sum.totalHargaJual += t.jumlah * t.harga;
     }
-    const aggPrev = Array.from(prevMapData.values());
+    const aggPrev = Array.from(prevMap.values());
 
     const produkIds = aggCurrent.map((a) => a.produkId);
     const produks = await this.prisma.produkEcom.findMany({

@@ -19,9 +19,16 @@ export class FindMyStoreUseCase {
     if (pengguna.peran === "KURIR") {
       // Find toko where this user is assigned as courier
       toko = await this.storesRepo.findFirst({
-        where: { courierStaffId: penggunaId } as any,
+        where: {
+          OR: [
+            { courierStaffId: penggunaId },
+            { kurirStaffs: { some: { id: penggunaId } } },
+            { penjual: { kurirId: penggunaId } }
+          ]
+        } as any,
         include: {
           kurirStaffs: true,
+          penjual: { include: { kurir: true } }
         } as any,
       });
     } else {

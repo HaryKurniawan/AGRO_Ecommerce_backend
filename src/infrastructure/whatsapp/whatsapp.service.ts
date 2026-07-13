@@ -30,20 +30,31 @@ export class WhatsappService implements OnModuleInit {
 
     this.sock = makeWASocket({
       auth: state,
-      printQRInTerminal: true, // Biarkan Baileys yang print QR di terminal agar lebih stabil
+      printQRInTerminal: false, // Matikan QR karena kita pakai Pairing Code
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      logger: pino({ level: 'silent' }) as any, // Suppress Baileys noisy logs, only show important ones
-      browser: ['Ubuntu', 'Chrome', '20.0.04'], // Gunakan nama browser standar agar tidak ditolak WA
+      logger: pino({ level: 'silent' }) as any, 
     });
+
+    // Jalankan Request Pairing Code jika belum login
+    if (!this.sock.authState.creds.me?.id) {
+      setTimeout(async () => {
+        try {
+          const code = await this.sock.requestPairingCode("6288226126465");
+          this.logger.log(`\n======================================================`);
+          this.logger.log(`KODE PAIRING WHATSAPP: ${code}`);
+          this.logger.log(`(Buka WhatsApp -> Perangkat Tertaut -> Tautkan dengan Nomor Telepon)`);
+          this.logger.log(`======================================================\n`);
+        } catch (error) {
+          this.logger.error("Gagal mendapatkan kode pairing:", error);
+        }
+      }, 3000);
+    }
 
     this.sock.ev.on('connection.update', (update) => {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
-        this.logger.log('Scan QR Code ini untuk login WhatsApp:');
-        qrcode.generate(qr, { small: true });
-        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
-        this.logger.log(`\n======================================================\nATAU BUKA LINK INI DI BROWSER JIKA QR DI ATAS GAGAL:\n${qrImageUrl}\n======================================================`);
+        this.logger.log('Menunggu Anda memasukkan kode pairing di aplikasi WhatsApp...');
       }
 
       if (connection === 'close') {
@@ -97,12 +108,25 @@ export class WhatsappService implements OnModuleInit {
    */
   async sendMessage(phone: string, message: string): Promise<boolean> {
     try {
+      if (!this.sock) {
+        this.logger.error(`Gagal mengirim pesan: WhatsApp Socket belum diinisialisasi`);
+        return false;
+      }
+      
+      const userState = this.sock?.user || this.sock?.authState?.creds?.me;
+      if (!userState) {
+        this.logger.error(`Gagal mengirim pesan: WhatsApp belum login (Data sesi kosong)`);
+        return false;
+      }
+
       const jid = this.formatPhoneNumber(phone);
+      this.logger.log(`Mencoba mengirim pesan ke ${jid}...`);
+      
       await this.sock.sendMessage(jid, { text: message });
-      this.logger.log(`Pesan berhasil dikirim ke ${jid}`);
+      this.logger.log(`✅ Pesan berhasil dikirim ke ${jid}`);
       return true;
     } catch (error) {
-      this.logger.error(`Gagal mengirim pesan ke ${phone}`, error);
+      this.logger.error(`❌ Gagal mengirim pesan ke ${phone}:`, error);
       return false;
     }
   }
