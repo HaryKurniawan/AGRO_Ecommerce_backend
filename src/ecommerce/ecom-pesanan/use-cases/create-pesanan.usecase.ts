@@ -34,6 +34,17 @@ export class CreateOrderUseCase {
       throw new BadRequestException("Pesanan tidak boleh kosong");
     }
 
+    const pengguna = await this.prisma.pengguna.findUnique({
+      where: { id: penggunaId },
+      select: { noTeleponTerverifikasiPada: true, peran: true }
+    });
+
+    const isAdmin = ["SUPER_ADMIN", "ADMIN_CS"].includes(pengguna?.peran || "");
+    if (!isAdmin && (!pengguna || !pengguna.noTeleponTerverifikasiPada)) {
+      throw new BadRequestException("Anda harus memverifikasi WhatsApp terlebih dahulu sebelum dapat memesan produk.");
+    }
+
+
     // ── 1. Validasi alamat pengiriman ──────────────────────
     const customerAddress = await this.prisma.alamatKonsumen.findUnique({
       where: { id: data.alamatKirim },

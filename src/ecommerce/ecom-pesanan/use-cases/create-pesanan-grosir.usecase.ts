@@ -26,6 +26,16 @@ export class CreatePesananGrosirUseCase {
       );
     }
 
+    const pengguna = await this.prisma.pengguna.findUnique({
+      where: { id: penggunaId },
+      select: { noTeleponTerverifikasiPada: true, peran: true }
+    });
+
+    const isAdmin = ["SUPER_ADMIN", "ADMIN_CS"].includes(pengguna?.peran || "");
+    if (!isAdmin && (!pengguna || !pengguna.noTeleponTerverifikasiPada)) {
+      throw new BadRequestException("Anda harus memverifikasi WhatsApp terlebih dahulu sebelum dapat memesan produk.");
+    }
+
     for (const it of item) {
       if (!it.jumlah || it.jumlah < 300) {
         throw new BadRequestException(

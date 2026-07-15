@@ -37,9 +37,9 @@ export class LoginUseCase {
     }
 
     const isAdmin = ["SUPER_ADMIN", "ADMIN_CS"].includes(pengguna.peran);
-    if (!isAdmin && (!pengguna.emailTerverifikasiPada || !pengguna.noTeleponTerverifikasiPada)) {
+    if (!isAdmin && !pengguna.emailTerverifikasiPada) {
       throw new UnauthorizedException(
-        "Akun Anda belum terverifikasi sepenuhnya. Silakan selesaikan verifikasi Email dan WhatsApp Anda.",
+        "Akun Anda belum terverifikasi. Silakan selesaikan verifikasi Email Anda.",
       );
     }
 
