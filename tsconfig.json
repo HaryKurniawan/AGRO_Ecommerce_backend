@@ -18,7 +18,6 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "moduleResolution": "node",
-    "rootDir": ".",
     "esModuleInterop": true,
     "strictPropertyInitialization": false,
     "paths": {
