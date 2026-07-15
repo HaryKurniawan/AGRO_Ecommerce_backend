@@ -36,7 +36,8 @@ export class LoginUseCase {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    if (!pengguna.emailTerverifikasiPada || !pengguna.noTeleponTerverifikasiPada) {
+    const isAdmin = ["SUPER_ADMIN", "ADMIN_CS"].includes(pengguna.peran);
+    if (!isAdmin && (!pengguna.emailTerverifikasiPada || !pengguna.noTeleponTerverifikasiPada)) {
       throw new UnauthorizedException(
         "Akun Anda belum terverifikasi sepenuhnya. Silakan selesaikan verifikasi Email dan WhatsApp Anda.",
       );
