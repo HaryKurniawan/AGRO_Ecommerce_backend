@@ -17,6 +17,7 @@ export async function seedUsers(prisma: PrismaClient) {
       noTelepon: '0812-3456-7890',
       peran: 'SUPER_ADMIN',
       emailTerverifikasiPada: new Date(),
+      noTeleponTerverifikasiPada: new Date(),
     },
   });
 
