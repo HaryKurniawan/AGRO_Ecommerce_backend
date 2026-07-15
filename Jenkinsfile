@@ -2,15 +2,12 @@ pipeline {
     agent any
 
     environment {
-        // Multi-branch environment detection
-        IS_PRODUCTION = "${env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master'}"
-        
         // Configuration
-        APP_PORT = "${IS_PRODUCTION == 'true' ? '4000' : '4001'}"
-        CONTAINER_NAME = "${IS_PRODUCTION == 'true' ? 'agro-backend' : 'agro-backend-staging'}"
+        APP_PORT = "4000"
+        CONTAINER_NAME = "agro-backend"
         IMAGE_NAME = "${CONTAINER_NAME}-image"
         DOCKER_NETWORK = "agro-network"
-        ENV_CRED_ID = "${IS_PRODUCTION == 'true' ? 'agro_env_backend' : 'agro_env_staging'}"
+        ENV_CRED_ID = "agro_env_backend"
     }
 
     stages {
@@ -90,7 +87,7 @@ EOF
                     docker run -d \
                     --name ${CONTAINER_NAME} \
                     --network ${DOCKER_NETWORK} \
-                    --env-file $ENV_FILE \
+                    --env-file "$ENV_FILE" \
                     --restart always \
                     -v /data/agro/public/uploads:/app/public/uploads \
                     -v /data/agro/auth_info_baileys:/app/auth_info_baileys \
