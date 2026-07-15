@@ -28,6 +28,7 @@ import { SellerConfirmOrderUseCase } from "./use-cases/seller-confirm-order.usec
 import { AutoConfirmOrderService } from "./services/auto-confirm-order.service";
 import { XenditService } from "./services/xendit.service";
 import { CreateOrderHelpersService } from "./use-cases/create-pesanan-helpers.service";
+import { CancelExpiredOrdersScheduler } from "./cancel-expired-orders.scheduler";
 import { EcomProductsModule } from "../ecom-produk/ecom-produks.module";
 import { StoresModule } from "../toko/tokos.module";
 import { CommonModule } from "../../common/common.module";
@@ -82,6 +83,7 @@ import { PengajuanStokModule } from "../pengajuan-stok/pengajuan-stok.module";
     AutoConfirmOrderService,
     XenditService,
     CreateOrderHelpersService,
+    CancelExpiredOrdersScheduler,
   ],
   exports: [PesananEcomsRepository],
 })

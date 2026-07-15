@@ -32,6 +32,19 @@ export class FindOrderByIdUseCase {
       },
     });
     if (!pesanan) throw new NotFoundException("Pesanan not found");
+
+    if (pesanan.status === "MENUNGGU_BAYAR") {
+      const expiry = new Date(pesanan.createdAt).getTime() + 1 * 60 * 60 * 1000;
+      if (Date.now() > expiry) {
+        await this.ordersRepo.update({
+          where: { id: pesanan.id },
+          data: { status: "DIBATALKAN", catatan: "Dibatalkan otomatis karena batas waktu pembayaran habis" },
+        });
+        pesanan.status = "DIBATALKAN" as any;
+        pesanan.catatan = "Dibatalkan otomatis karena batas waktu pembayaran habis";
+      }
+    }
+
     return pesanan;
   }
 }

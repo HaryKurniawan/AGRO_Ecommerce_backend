@@ -33,6 +33,21 @@ export class FindUserOrdersUseCase {
       this.ordersRepo.count({ where }),
     ]);
 
+    const now = Date.now();
+    for (const pesanan of data) {
+      if (pesanan.status === "MENUNGGU_BAYAR") {
+        const expiry = new Date(pesanan.createdAt).getTime() + 1 * 60 * 60 * 1000;
+        if (now > expiry) {
+          await this.ordersRepo.update({
+            where: { id: pesanan.id },
+            data: { status: "DIBATALKAN", catatan: "Dibatalkan otomatis karena batas waktu pembayaran habis" },
+          });
+          pesanan.status = "DIBATALKAN" as any;
+          pesanan.catatan = "Dibatalkan otomatis karena batas waktu pembayaran habis";
+        }
+      }
+    }
+
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 }

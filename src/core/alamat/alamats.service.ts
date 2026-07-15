@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 
 import { PrismaService } from "../../infrastructure/database/prisma.service";
 
@@ -30,6 +30,13 @@ export class AddressesService {
       lng?: number;
     },
   ) {
+    const totalAddresses = await this.prisma.alamatKonsumen.count({
+      where: { konsumenId: penggunaId },
+    });
+    if (totalAddresses >= 3) {
+      throw new BadRequestException("Maksimal alamat yang dapat disimpan adalah 3.");
+    }
+
     if (data.isDefault) {
       await this.prisma.alamatKonsumen.updateMany({
         where: { konsumenId: penggunaId },

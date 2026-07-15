@@ -63,13 +63,24 @@ export class CreateOrderUseCase {
       });
       const shipping = shippingResults.find((s) => s.tokoId === storeOrder.tokoId);
       if (!shipping) {
+        const storeInfo = await this.prisma.toko.findUnique({
+          where: { id: storeOrder.tokoId },
+          select: { nama: true, kabupaten: true }
+        });
+        const storeName = storeInfo?.nama || storeOrder.tokoId;
         throw new BadRequestException(
-          `Pengiriman dari toko ${storeOrder.tokoId} tidak ditemukan`,
+          `Pengiriman dari toko ${storeName} tidak ditemukan`,
         );
       }
       if (!shipping.isAvailable) {
+        const storeInfo = await this.prisma.toko.findUnique({
+          where: { id: storeOrder.tokoId },
+          select: { nama: true, kabupaten: true }
+        });
+        const storeName = storeInfo?.nama || storeOrder.tokoId;
+        const storeCity = storeInfo?.kabupaten || "lokasi tidak diketahui";
         throw new BadRequestException(
-          `Metode pengiriman tidak tersedia untuk toko ${storeOrder.tokoId}: ${shipping.keterangan}`,
+          `Toko ${storeName} (di ${storeCity}) tidak menjangkau alamat Anda. ${shipping.keterangan}`
         );
       }
       if (storeOrder.ongkir !== shipping.ongkir) {
