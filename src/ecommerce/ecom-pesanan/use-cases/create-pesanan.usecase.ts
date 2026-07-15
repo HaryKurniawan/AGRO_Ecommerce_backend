@@ -40,8 +40,8 @@ export class CreateOrderUseCase {
     });
 
     const isAdmin = ["SUPER_ADMIN", "ADMIN_CS"].includes(pengguna?.peran || "");
-    if (!isAdmin && (!pengguna || !pengguna.noTeleponTerverifikasiPada)) {
-      throw new BadRequestException("Anda harus memverifikasi WhatsApp terlebih dahulu sebelum dapat memesan produk.");
+    if (!isAdmin && !pengguna) {
+      throw new BadRequestException("Data pengguna tidak ditemukan.");
     }
 
 

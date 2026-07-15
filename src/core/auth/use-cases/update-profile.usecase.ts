@@ -26,14 +26,6 @@ export class UpdateProfileUseCase {
       data.noTelepon !== undefined &&
       data.noTelepon !== existing.noTelepon;
 
-    let otpCode: string | null = null;
-    let kadaluarsaOtpWhatsapp: Date | null = null;
-
-    if (isPhoneChanged) {
-      otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      kadaluarsaOtpWhatsapp = new Date(Date.now() + 5 * 60 * 1000); // 5 menit
-    }
-
     const updated = await this.prisma.pengguna.update({
       where: { id: penggunaId },
       data: {
@@ -42,19 +34,10 @@ export class UpdateProfileUseCase {
           noTelepon: data.noTelepon,
         }),
         ...(isPhoneChanged && {
-          noTeleponTerverifikasiPada: null,
-          otpWhatsapp: otpCode,
-          kadaluarsaOtpWhatsapp,
+          noTeleponTerverifikasiPada: new Date(), // Otomatis terverifikasi tanpa OTP
         }),
       },
     });
-
-    if (isPhoneChanged && data.noTelepon) {
-      await this.whatsappService.sendMessage(
-        data.noTelepon,
-        `*AGRO JABAR*\n\nAnda mengubah nomor telepon. Kode OTP Anda adalah: *${otpCode}*.\n\nJANGAN berikan kode ini kepada siapapun.`,
-      );
-    }
 
     return updated;
   }

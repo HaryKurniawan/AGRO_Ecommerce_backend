@@ -30,9 +30,6 @@ export class RegisterUseCase {
     // Generate token verifikasi (random 64 hex chars)
     const verifyToken = randomBytes(32).toString("hex");
 
-    // Generate token OTP (6 digit angka)
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-
     const hashedPassword = await hashPassword(dto.kataSandi);
 
     const pengguna = await this.prisma.pengguna.create({
@@ -45,8 +42,7 @@ export class RegisterUseCase {
         // Set legacy fields to null
         tokenVerifikasiEmail: verifyToken,
         kadaluarsaTokenEmail: new Date(Date.now() + 86400 * 1000), // 24 hours
-        otpWhatsapp: otpCode,
-        kadaluarsaOtpWhatsapp: new Date(Date.now() + 5 * 60 * 1000), // 5 menit
+        noTeleponTerverifikasiPada: new Date(), // Otomatis terverifikasi
       },
     });
 
@@ -58,16 +54,10 @@ export class RegisterUseCase {
       pengguna.peran,
     );
 
-    // Kirim OTP via WA
-    await this.whatsappService.sendMessage(
-      pengguna.noTelepon,
-      `*AGRO JABAR*\n\nKode OTP Anda adalah: *${otpCode}*.\n\nJANGAN berikan kode ini kepada siapapun.`
-    );
-
     // Kembalikan info tanpa accessToken — pengguna harus verifikasi dulu
     return {
       message:
-        "Registrasi berhasil. Silakan cek Email dan WhatsApp Anda untuk verifikasi.",
+        "Registrasi berhasil. Silakan cek Email Anda untuk verifikasi.",
       email: pengguna.email,
     };
   }
