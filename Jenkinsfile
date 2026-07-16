@@ -129,17 +129,11 @@ EOF
                     echo "Container berjalan:"
                     docker ps
 
-                    echo "Generate Prisma Client..."
-                    docker exec ${CONTAINER_NAME} npx prisma generate
-
                     echo "Push Database..."
-                    docker exec ${CONTAINER_NAME} npx prisma db push --accept-data-loss
-
-                    echo "Install ts-node..."
-                    docker exec ${CONTAINER_NAME} npm install ts-node typescript
+                    docker exec ${CONTAINER_NAME} npx prisma db push --accept-data-loss --skip-generate
 
                     echo "Seed Database..."
-                    docker exec ${CONTAINER_NAME} npx prisma db seed
+                    docker exec ${CONTAINER_NAME} npx -p ts-node -p typescript ts-node prisma/seed.ts
 
                     echo "========== SELESAI =========="
                     '''
