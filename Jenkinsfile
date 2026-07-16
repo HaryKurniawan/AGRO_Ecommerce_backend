@@ -57,6 +57,7 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY tsconfig*.json ./
 
 RUN npm ci --omit=dev --ignore-scripts
 RUN npm cache clean --force
@@ -75,7 +76,7 @@ USER nestjs
 
 EXPOSE 4000
 
-CMD ["node","dist/src/main.js"]
+CMD ["node","dist/main.js"]
 EOF
 
                 docker build \
@@ -91,12 +92,7 @@ EOF
 
         stage('Deploy') {
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                    branch 'develop'
-                    branch 'staging'
-                }
+                branch 'main'
             }
 
             steps {
