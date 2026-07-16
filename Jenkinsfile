@@ -65,6 +65,8 @@ COPY package*.json ./
 COPY prisma ./prisma/
 COPY tsconfig*.json ./
 
+# Hapus prepare script agar husky tidak dijalankan
+RUN npm pkg delete scripts.prepare
 # Jangan gunakan --ignore-scripts
 RUN npm ci --omit=dev
 
