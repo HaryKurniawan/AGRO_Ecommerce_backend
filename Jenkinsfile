@@ -33,7 +33,10 @@ pipeline {
         stage('Build Production Image') {
             steps {
                 sh '''
+                echo "Menghapus container lama..."
                 docker rm -f ${CONTAINER_NAME} || true
+
+                echo "Menghapus image lama..."
                 docker rmi ${IMAGE_NAME} || true
 
                 cat << 'EOF' > Dockerfile.prod
@@ -69,7 +72,6 @@ RUN addgroup -S nodejs
 RUN adduser -S nestjs
 
 RUN mkdir -p /app/public/uploads
-
 RUN chown -R nestjs:nodejs /app
 
 USER nestjs
@@ -79,11 +81,13 @@ EXPOSE 4000
 CMD ["node","dist/main.js"]
 EOF
 
+                echo "Build image terbaru..."
+
                 docker build \
-                  --pull \
-                  --no-cache \
-                  -f Dockerfile.prod \
-                  -t ${IMAGE_NAME} .
+                    --pull \
+                    --no-cache \
+                    -f Dockerfile.prod \
+                    -t ${IMAGE_NAME} .
 
                 rm Dockerfile.prod
                 '''
@@ -91,20 +95,17 @@ EOF
         }
 
         stage('Deploy') {
-            when {
-                branch 'main'
-            }
-
             steps {
+
                 withCredentials([
                     file(credentialsId: "${ENV_CRED_ID}", variable: 'ENV_FILE')
                 ]) {
 
                     sh '''
-                    echo "Menghapus container lama..."
+                    echo "========== DEPLOY =========="
+
                     docker rm -f ${CONTAINER_NAME} || true
 
-                    echo "Menjalankan container baru..."
                     docker run -d \
                         --name ${CONTAINER_NAME} \
                         --restart always \
@@ -114,21 +115,25 @@ EOF
                         -p ${APP_PORT}:4000 \
                         ${IMAGE_NAME}
 
-                    echo "Menunggu container siap..."
+                    echo "Menunggu container..."
                     sleep 10
+
+                    echo "Container berjalan:"
+                    docker ps
 
                     echo "Generate Prisma Client..."
                     docker exec ${CONTAINER_NAME} npx prisma generate
 
-                    echo "Push Database Schema..."
+                    echo "Push Database..."
                     docker exec ${CONTAINER_NAME} npx prisma db push --accept-data-loss
 
-                    echo "Menjalankan Prisma Seed..."
+                    echo "Install ts-node..."
                     docker exec ${CONTAINER_NAME} npm install ts-node typescript
+
+                    echo "Seed Database..."
                     docker exec ${CONTAINER_NAME} npx prisma db seed
 
-                    echo "Container yang berjalan:"
-                    docker ps
+                    echo "========== SELESAI =========="
                     '''
                 }
             }
@@ -138,6 +143,8 @@ EOF
     post {
         always {
             sh '''
+            echo "Membersihkan cache..."
+
             docker image prune -f || true
             docker builder prune -f || true
             '''
