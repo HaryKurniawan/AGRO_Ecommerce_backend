@@ -1,12 +1,10 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
-import { WhatsappService } from "../../../infrastructure/whatsapp/whatsapp.service";
 
 @Injectable()
 export class UpdateProfileUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly whatsappService: WhatsappService,
   ) {}
 
   async execute(

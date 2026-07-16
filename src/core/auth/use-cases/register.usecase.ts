@@ -6,7 +6,6 @@ import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { hashPassword } from "../../../common/utils/hash.util";
 import { EmailService } from "../../../common/services/email.service";
-import { WhatsappService } from "../../../infrastructure/whatsapp/whatsapp.service";
 import { RegisterDto } from "../dto/register.dto";
 
 @Injectable()
@@ -15,7 +14,6 @@ export class RegisterUseCase {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
-    private readonly whatsappService: WhatsappService,
   ) {}
 
   async execute(dto: RegisterDto) {
