@@ -104,4 +104,12 @@ EOF
             }
         }
     }
+
+    post {
+        always {
+            echo "🧹 Membersihkan cache docker (images & builder) untuk menghemat storage..."
+            sh 'docker image prune -f || true'
+            sh 'docker builder prune -f || true'
+        }
+    }
 }
