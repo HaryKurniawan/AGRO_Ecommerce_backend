@@ -47,12 +47,15 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci --ignore-scripts
+# Jangan gunakan --ignore-scripts agar bcrypt ter-build
+RUN npm ci
+
 RUN npx prisma generate
 
 COPY . .
 
 RUN npm run build
+
 
 FROM node:22-alpine
 
@@ -62,8 +65,11 @@ COPY package*.json ./
 COPY prisma ./prisma/
 COPY tsconfig*.json ./
 
-RUN npm ci --omit=dev --ignore-scripts
+# Jangan gunakan --ignore-scripts
+RUN npm ci --omit=dev
+
 RUN npm cache clean --force
+
 RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist
