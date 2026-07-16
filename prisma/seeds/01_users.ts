@@ -9,6 +9,8 @@ export async function seedUsers(prisma: PrismaClient) {
   const admin = await prisma.pengguna.upsert({
     where: { email: 'admin@agro.local' },
     update: {
+      peran: 'SUPER_ADMIN',
+      kataSandi: hashedPassword,
       emailTerverifikasiPada: new Date(),
       noTeleponTerverifikasiPada: new Date(),
     },

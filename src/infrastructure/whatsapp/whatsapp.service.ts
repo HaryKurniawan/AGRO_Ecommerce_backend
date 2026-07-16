@@ -30,7 +30,7 @@ export class WhatsappService implements OnModuleInit {
 
     this.sock = makeWASocket({
       auth: state,
-      printQRInTerminal: false, // Matikan QR karena kita pakai Pairing Code
+      printQRInTerminal: true, // Aktifkan QR sebagai fallback
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       logger: pino({ level: 'silent' }) as any, 
     });
