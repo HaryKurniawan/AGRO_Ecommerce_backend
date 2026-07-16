@@ -7,7 +7,6 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { TransformInterceptor } from "./common/interceptors/transform.interceptor";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { MetricsInterceptor } from "./infrastructure/monitoring/metrics.interceptor";
-import { TestController } from "./test.controller";
 
 // Config
 import appConfig from "./config/app.config";
@@ -17,7 +16,6 @@ import jwtConfig from "./config/jwt.config";
 import { PrismaModule } from "./infrastructure/database/prisma.module";
 import { LoggerModule } from "./infrastructure/logger/logger.module";
 import { MonitoringModule } from "./infrastructure/monitoring/monitoring.module";
-import { WhatsappModule } from "./infrastructure/whatsapp/whatsapp.module";
 // Core Modules
 import { AuthModule } from "./core/auth/auth.module";
 import { UsersModule } from "./core/pengguna/pengguna.module";
@@ -76,7 +74,6 @@ import { DeliveryBatchModule } from "./ecommerce/delivery-batch/delivery-batch.m
     PrismaModule,
     LoggerModule,
     MonitoringModule,
-    WhatsappModule,
 
     // Shared Services (Global)
     CommonModule,
@@ -109,7 +106,7 @@ import { DeliveryBatchModule } from "./ecommerce/delivery-batch/delivery-batch.m
     ReviewsModule,
     DeliveryBatchModule,
   ],
-  controllers: [TestController],
+  controllers: [],
   providers: [
     {
       provide: APP_GUARD,

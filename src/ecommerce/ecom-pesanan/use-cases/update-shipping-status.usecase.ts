@@ -9,7 +9,6 @@ import { FindOrderByIdUseCase } from "./find-pesanan-by-id.usecase";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { EmailService } from "../../../common/services/email.service";
-import { WhatsappService } from "../../../infrastructure/whatsapp/whatsapp.service";
 
 @Injectable()
 export class UpdateShippingStatusUseCase {
@@ -19,7 +18,6 @@ export class UpdateShippingStatusUseCase {
     private readonly eventEmitter: EventEmitter2,
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
-    private readonly whatsappService: WhatsappService,
   ) {}
 
   async execute(
@@ -96,13 +94,11 @@ export class UpdateShippingStatusUseCase {
       });
     }
 
-    // When status is ARRIVED (Sampai Tujuan) → send order arrived email & WA to consumer
+    // When status is ARRIVED (Sampai Tujuan) → send order arrived email to consumer
     if (nextStatus === "ARRIVED") {
       const konsumen = (pesanan as any).konsumen;
       const email = konsumen?.email;
       const nama = konsumen?.nama || "Pelanggan";
-      // Fallback to the phone number in their default address if not in profile
-      const noTelepon = konsumen?.noTelepon || (konsumen?.addresses && konsumen?.addresses[0]?.telepon);
 
       if (email) {
         await this.emailService.sendOrderArrivedNotification(
@@ -110,16 +106,6 @@ export class UpdateShippingStatusUseCase {
           nama,
           pesananId,
         );
-      }
-
-      if (noTelepon) {
-        console.log(`[UpdateShipping] Sending WhatsApp notification to ${noTelepon} for order ${pesananId}`);
-        await this.whatsappService.sendMessage(
-          noTelepon,
-          `*AGRO JABAR*\n\nHalo ${nama},\n\nPesanan Anda dengan ID *#${pesananId}* telah tiba di tujuan (Sampai Tujuan). Silakan cek pesanan Anda.\n\nTerima kasih telah berbelanja di Agro Jabar!`
-        );
-      } else {
-        console.warn(`[UpdateShipping] Could not send WA notification for order ${pesananId}: no phone number found for consumer`);
       }
     }
 
