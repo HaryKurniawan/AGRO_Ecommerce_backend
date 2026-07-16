@@ -94,9 +94,10 @@ EOF
                     -p ${APP_PORT}:4000 \
                     ${IMAGE_NAME}
                     
-                    echo "🗄️ Menyiapkan Database Schema..."
+                    echo "🗄️ Menyiapkan Database Schema & Seeding..."
                     sleep 5
-                    # docker exec ${CONTAINER_NAME} npx prisma db push
+                    docker exec ${CONTAINER_NAME} npx prisma db push --accept-data-loss
+                    docker exec ${CONTAINER_NAME} sh -c "npm install ts-node typescript && npx prisma db seed"
                     
                     echo "✅ Deploy Berhasil di Port ${APP_PORT}!"
                     '''
