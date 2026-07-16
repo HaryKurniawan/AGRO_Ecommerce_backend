@@ -7,19 +7,19 @@ export async function seedUsers(prisma: PrismaClient) {
 
   // ── Admin ───────────────────────────────────────────────────────────
   const admin = await prisma.pengguna.upsert({
-    where: { email: 'admin@agro.local' },
+    where: { email: 'kurniawan3516@gmail.com' },
     update: {
       peran: 'SUPER_ADMIN',
-      kataSandi: hashedPassword,
+      nama: 'Admin Agro Jabar',
+      noTelepon: '081234567890',
       emailTerverifikasiPada: new Date(),
-      noTeleponTerverifikasiPada: new Date(),
     },
     create: {
       id: '550e8400-e29b-41d4-a716-446655440000',
-      email: 'admin@agro.local',
+      email: 'kurniawan3516@gmail.com',
       kataSandi: hashedPassword,
       nama: 'Admin Agro Jabar',
-      noTelepon: '0812-3456-7890',
+      noTelepon: '081234567890',
       peran: 'SUPER_ADMIN',
       emailTerverifikasiPada: new Date(),
       noTeleponTerverifikasiPada: new Date(),

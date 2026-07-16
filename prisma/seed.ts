@@ -18,7 +18,7 @@ async function main() {
 
   console.log('\n✅ Seed ECOMMERCE selesai (data lama dibersihkan).\n');
   console.log('📋 Akun (password: password123):');
-  console.log('  admin@agro.local           SUPER_ADMIN');
+  console.log('  kurniawan3516@gmail.com    SUPER_ADMIN');
 }
 
 main()
