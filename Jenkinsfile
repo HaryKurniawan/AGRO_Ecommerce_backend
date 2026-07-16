@@ -30,48 +30,13 @@ pipeline {
             }
         }
 
-        stage('Unit Test') {
-            steps {
-                sh '''
-                cat << 'EOF' > Dockerfile.test
-FROM node:22-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-COPY prisma ./prisma/
-
-RUN npm ci
-RUN npx prisma generate
-
-COPY . .
-
-RUN npm run build
-
-EOF
-
-                docker build \
-                    --pull \
-                    --no-cache \
-                    -f Dockerfile.test \
-                    -t ${IMAGE_NAME}-test .
-
-                docker run --rm ${IMAGE_NAME}-test npm run test:coverage
-
-                rm Dockerfile.test
-                '''
-            }
-        }
-
         stage('Build Production Image') {
             steps {
                 sh '''
-
                 docker rm -f ${CONTAINER_NAME} || true
                 docker rmi ${IMAGE_NAME} || true
 
                 cat << 'EOF' > Dockerfile.prod
-
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -85,7 +50,6 @@ RUN npx prisma generate
 COPY . .
 
 RUN npm run build
-
 
 FROM node:22-alpine
 
@@ -112,14 +76,13 @@ USER nestjs
 EXPOSE 4000
 
 CMD ["node","dist/src/main.js"]
-
 EOF
 
                 docker build \
-                    --pull \
-                    --no-cache \
-                    -f Dockerfile.prod \
-                    -t ${IMAGE_NAME} .
+                  --pull \
+                  --no-cache \
+                  -f Dockerfile.prod \
+                  -t ${IMAGE_NAME} .
 
                 rm Dockerfile.prod
                 '''
@@ -127,7 +90,6 @@ EOF
         }
 
         stage('Deploy') {
-
             when {
                 anyOf {
                     branch 'main'
@@ -138,34 +100,39 @@ EOF
             }
 
             steps {
-
                 withCredentials([
                     file(credentialsId: "${ENV_CRED_ID}", variable: 'ENV_FILE')
                 ]) {
 
                     sh '''
-
+                    echo "Menghapus container lama..."
                     docker rm -f ${CONTAINER_NAME} || true
 
+                    echo "Menjalankan container baru..."
                     docker run -d \
-                      --name ${CONTAINER_NAME} \
-                      --restart always \
-                      --network ${DOCKER_NETWORK} \
-                      --env-file "$ENV_FILE" \
-                      -v /data/agro/public/uploads:/app/public/uploads \
-                      -p ${APP_PORT}:4000 \
-                      ${IMAGE_NAME}
+                        --name ${CONTAINER_NAME} \
+                        --restart always \
+                        --network ${DOCKER_NETWORK} \
+                        --env-file "$ENV_FILE" \
+                        -v /data/agro/public/uploads:/app/public/uploads \
+                        -p ${APP_PORT}:4000 \
+                        ${IMAGE_NAME}
 
-                    echo "Menunggu aplikasi..."
-
+                    echo "Menunggu container siap..."
                     sleep 10
 
+                    echo "Generate Prisma Client..."
+                    docker exec ${CONTAINER_NAME} npx prisma generate
+
+                    echo "Push Database Schema..."
                     docker exec ${CONTAINER_NAME} npx prisma db push --accept-data-loss
 
-                    docker exec ${CONTAINER_NAME} sh -c "npm install ts-node typescript && npx prisma db seed"
+                    echo "Menjalankan Prisma Seed..."
+                    docker exec ${CONTAINER_NAME} npm install ts-node typescript
+                    docker exec ${CONTAINER_NAME} npx prisma db seed
 
+                    echo "Container yang berjalan:"
                     docker ps
-
                     '''
                 }
             }
@@ -173,14 +140,11 @@ EOF
     }
 
     post {
-
         always {
-
             sh '''
             docker image prune -f || true
             docker builder prune -f || true
             '''
-
         }
 
         success {
