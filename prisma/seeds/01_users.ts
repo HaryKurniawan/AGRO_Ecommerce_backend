@@ -7,8 +7,9 @@ export async function seedUsers(prisma: PrismaClient) {
 
   // ── Admin ───────────────────────────────────────────────────────────
   const admin = await prisma.pengguna.upsert({
-    where: { email: 'kurniawan3516@gmail.com' },
+    where: { id: '550e8400-e29b-41d4-a716-446655440000' },
     update: {
+      email: 'kurniawan3516@gmail.com',
       peran: 'SUPER_ADMIN',
       nama: 'Admin Agro Jabar',
       noTelepon: '081234567890',
