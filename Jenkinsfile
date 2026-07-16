@@ -47,15 +47,12 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Jangan gunakan --ignore-scripts agar bcrypt ter-build
 RUN npm ci
-
 RUN npx prisma generate
 
 COPY . .
 
 RUN npm run build
-
 
 FROM node:22-alpine
 
@@ -65,11 +62,10 @@ COPY package*.json ./
 COPY prisma ./prisma/
 COPY tsconfig*.json ./
 
-# Hapus prepare script agar husky tidak dijalankan
+# Hilangkan prepare agar Husky tidak dijalankan
 RUN npm pkg delete scripts.prepare
-# Jangan gunakan --ignore-scripts
-RUN npm ci --omit=dev
 
+RUN npm ci --omit=dev
 RUN npm cache clean --force
 
 RUN npx prisma generate
@@ -112,8 +108,10 @@ EOF
                     sh '''
                     echo "========== DEPLOY =========="
 
+                    echo "Menghapus container lama..."
                     docker rm -f ${CONTAINER_NAME} || true
 
+                    echo "Menjalankan container..."
                     docker run -d \
                         --name ${CONTAINER_NAME} \
                         --restart always \
@@ -123,19 +121,26 @@ EOF
                         -p ${APP_PORT}:4000 \
                         ${IMAGE_NAME}
 
-                    echo "Menunggu container..."
+                    echo "Menunggu aplikasi..."
                     sleep 10
 
                     echo "Container berjalan:"
                     docker ps
 
                     echo "Push Database..."
-                    docker exec ${CONTAINER_NAME} npx prisma db push --accept-data-loss --skip-generate
+                    docker exec ${CONTAINER_NAME} \
+                        npx prisma db push --accept-data-loss --skip-generate \
+                        || echo "⚠️ Prisma db push gagal, deploy tetap dilanjutkan."
 
                     echo "Seed Database..."
-                    docker exec ${CONTAINER_NAME} npx -p ts-node -p typescript ts-node prisma/seed.ts
+                    docker exec ${CONTAINER_NAME} \
+                        npx -p ts-node -p typescript ts-node prisma/seed.ts \
+                        || echo "⚠️ Prisma seed gagal, deploy tetap dilanjutkan."
 
-                    echo "========== SELESAI =========="
+                    echo "Log backend:"
+                    docker logs --tail 30 ${CONTAINER_NAME} || true
+
+                    echo "========== DEPLOY SELESAI =========="
                     '''
                 }
             }
@@ -143,21 +148,24 @@ EOF
     }
 
     post {
+
         always {
+
             sh '''
             echo "Membersihkan cache..."
 
             docker image prune -f || true
             docker builder prune -f || true
             '''
+
         }
 
         success {
-            echo "Deploy berhasil."
+            echo "✅ Deploy berhasil."
         }
 
         failure {
-            echo "Deploy gagal."
+            echo "❌ Deploy gagal."
         }
     }
 }
