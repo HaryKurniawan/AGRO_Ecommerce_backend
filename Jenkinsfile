@@ -90,7 +90,6 @@ EOF
                     --env-file "$ENV_FILE" \
                     --restart always \
                     -v /data/agro/public/uploads:/app/public/uploads \
-                    -v /data/agro/auth_info_baileys:/app/auth_info_baileys \
                     -p ${APP_PORT}:4000 \
                     ${IMAGE_NAME}
                     
