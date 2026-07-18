@@ -24,7 +24,7 @@ export class GetPolaPenjualanQuery {
     const pesanans = await this.prisma.pesananEcom.findMany({
       where: {
         tokoId: filters.tokoId,
-        status: "SELESAI",
+        status: { in: ["SELESAI", "DITUTUP"] as any },
         createdAt: { gte: startDate, lte: endDate },
       },
       select: { createdAt: true },
@@ -39,3 +39,7 @@ export class GetPolaPenjualanQuery {
     );
   }
 }
+
+
+
+

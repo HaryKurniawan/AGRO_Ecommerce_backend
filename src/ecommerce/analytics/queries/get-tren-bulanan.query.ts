@@ -62,7 +62,7 @@ export class GetTrenBulananQuery {
         const records = await this.prisma.pesananEcom.findMany({
           where: {
             tokoId: filters.tokoId,
-            status: "SELESAI",
+            status: { in: ["SELESAI", "DITUTUP"] as any },
             updatedAt: { gte: startCurrent, lte: endCurrent },
           },
           select: {
@@ -103,3 +103,7 @@ export class GetTrenBulananQuery {
       return mapTrenBulananData(aggregasiByMonth, bulanKe, filters.tokoId);
   }
 }
+
+
+
+

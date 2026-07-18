@@ -29,6 +29,11 @@ export class CreateStokMasukDto {
   tanggalMasuk?: string;
 
   @IsOptional()
+  @IsDateString()
+  tanggalKadaluarsa?: string;
+
+
+  @IsOptional()
   @IsString()
   varianKemasanId?: string;
 

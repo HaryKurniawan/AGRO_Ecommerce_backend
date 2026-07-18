@@ -94,12 +94,14 @@ export class CreateOrderUseCase {
           `Toko ${storeName} (di ${storeCity}) tidak menjangkau alamat Anda. ${shipping.keterangan}`
         );
       }
+      // Selalu gunakan hasil kalkulasi ongkir backend (Single Source of Truth).
+      // Abaikan nilai ongkir dari frontend jika ada selisih (misal karena telat update state).
       if (storeOrder.ongkir !== shipping.ongkir) {
-        throw new BadRequestException(
-          `Manipulasi Ongkir Terdeteksi! Frontend: ${storeOrder.ongkir}, Valid: ${shipping.ongkir}`,
+        this.logger.warn(
+          `Selisih ongkir: Frontend mengirim ${storeOrder.ongkir}, mengubah menjadi ${shipping.ongkir}`,
         );
       }
-
+      storeOrder.ongkir = shipping.ongkir;
       // 3c. Validasi stok (retail only)
       if (!isB2B) {
         await this.helpers.validateStock(storeOrder);

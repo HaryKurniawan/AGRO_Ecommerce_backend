@@ -31,7 +31,7 @@ export class FindProfitTransactionsByProductQuery {
         tanggalTransaksi: {
           ...((filters.startDate && { gte: new Date(filters.startDate) }) ||
             {}),
-          lte: new Date(filters.endDate),
+          lte: new Date(new Date(filters.endDate).setHours(23, 59, 59, 999)),
         },
       }),
       ...(filters.status && {
@@ -66,3 +66,4 @@ export class FindProfitTransactionsByProductQuery {
     return { transactions, total };
   }
 }
+

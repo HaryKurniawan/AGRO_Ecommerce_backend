@@ -16,7 +16,7 @@ export class GetPesananHarianQuery {
       where: {
         tokoId,
         createdAt: { gte: startOfDay, lte: endOfDay },
-        status: "SELESAI",
+        status: { in: ["SELESAI", "DITUTUP"] as any },
       },
       select: {
         id: true,
@@ -45,3 +45,7 @@ export class GetPesananHarianQuery {
     };
   }
 }
+
+
+
+

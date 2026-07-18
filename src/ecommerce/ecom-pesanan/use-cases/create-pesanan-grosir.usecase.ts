@@ -36,12 +36,18 @@ export class CreatePesananGrosirUseCase {
       throw new BadRequestException("Data pengguna tidak ditemukan.");
     }
 
+    let totalJumlah = 0;
     for (const it of item) {
-      if (!it.jumlah || it.jumlah < 300) {
-        throw new BadRequestException(
-          "Jumlah pesanan grosir harus minimal 300",
-        );
+      if (!it.jumlah || it.jumlah <= 0) {
+        throw new BadRequestException("Jumlah pesanan tidak valid");
       }
+      totalJumlah += it.jumlah;
+    }
+
+    if (totalJumlah < 300) {
+      throw new BadRequestException(
+        "Total keseluruhan pesanan grosir harus minimal 300 kg",
+      );
     }
 
     // Grosir assumes 1 store per order for simplicity in this implementation
@@ -84,24 +90,37 @@ export class CreatePesananGrosirUseCase {
       }
     }
 
+    // Fetch config toko untuk ongkosKirimGrosir
+    const tokoConfig = await this.prisma.konfigurasiHargaToko.findUnique({
+      where: { tokoId: produk.tokoId },
+    });
+    const ongkosKirimGrosir = tokoConfig?.ongkosKirimGrosir || 0;
+
     const subtotal = item.reduce(
       (sum: number, it: any) => sum + it.harga * it.jumlah,
       0,
     );
-    const totalHarga = subtotal + (ongkir || 0);
+
+    // Hitung diskon
+    const diskonPersen = data.diskonGrosirPersen || 0;
+    const nominalDiskon = (subtotal * diskonPersen) / 100;
+    const totalHarga = subtotal - nominalDiskon + ongkosKirimGrosir;
 
     // Create the order with status MENUNGGU_KONFIRMASI_SELLER
+    console.log("PACKAGING SPECS RECEIVED:", JSON.stringify(data.packagingSpecs));
     const pesanan = await this.ordersRepo.create({
       data: {
         konsumenId: penggunaId,
         tokoId: produk.tokoId,
         status: "MENUNGGU_KONFIRMASI_SELLER",
         isGrosir: true,
-        ongkir: ongkir || 0,
+        ongkir: ongkosKirimGrosir,
         totalHarga,
         metodeBayar: data.metodeBayar || "MANUAL",
         alamatKirim: data.alamatKirim || "Default Address",
         catatan,
+        kemasanGrosir: data.packagingSpecs || [],
+        diskonGrosirPersen: diskonPersen,
         diprosesOleh: "TOKO",
         item: {
           create: item.map((it: any) => ({

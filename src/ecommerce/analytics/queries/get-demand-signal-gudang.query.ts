@@ -54,7 +54,7 @@ export class GetDemandSignalGudangQuery {
       this.prisma.transaksiKeuntungan.findMany({
         where: {
           tokoId: { in: tokoIds },
-          statusPesanan: "SELESAI",
+          statusPesanan: { in: ["SELESAI", "DITUTUP"] as any },
           tanggalTransaksi: { gte: currentRange.gte, lte: currentRange.lte },
         },
         select: { produkId: true, jumlahTerjual: true, hargaJual: true, id: true },
@@ -62,7 +62,7 @@ export class GetDemandSignalGudangQuery {
       this.prisma.transaksiKeuntungan.findMany({
         where: {
           tokoId: { in: tokoIds },
-          statusPesanan: "SELESAI",
+          statusPesanan: { in: ["SELESAI", "DITUTUP"] as any },
           tanggalTransaksi: { gte: prevRange.gte, lte: prevRange.lte },
         },
         select: { produkId: true, jumlahTerjual: true },
@@ -140,3 +140,7 @@ export class GetDemandSignalGudangQuery {
     );
   }
 }
+
+
+
+

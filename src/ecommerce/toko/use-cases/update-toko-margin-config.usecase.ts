@@ -10,6 +10,8 @@ export class UpdateTokoMarginConfigUseCase {
     tokoId: string;
     marginDefaultPersen?: number;
     marginMaxPersen?: number;
+    diskonGrosirPersen?: number;
+    ongkosKirimGrosir?: number;
     diubahOlehId: string;
     diubahOlehPeran: "SELLER" | "ADMIN";
   }) {
@@ -55,11 +57,19 @@ export class UpdateTokoMarginConfigUseCase {
       update: {
         marginDefaultPersen: Number(activeDefaultMargin),
         marginMaxPersen: Number(activeMaxMargin),
+        ...(data.diskonGrosirPersen !== undefined && {
+          diskonGrosirPersen: Number(data.diskonGrosirPersen),
+        }),
+        ...(data.ongkosKirimGrosir !== undefined && {
+          ongkosKirimGrosir: Number(data.ongkosKirimGrosir),
+        }),
       },
       create: {
         tokoId: data.tokoId,
         marginDefaultPersen: Number(activeDefaultMargin),
         marginMaxPersen: Number(activeMaxMargin),
+        diskonGrosirPersen: data.diskonGrosirPersen !== undefined ? Number(data.diskonGrosirPersen) : 0,
+        ongkosKirimGrosir: data.ongkosKirimGrosir !== undefined ? Number(data.ongkosKirimGrosir) : 0,
       },
     });
 

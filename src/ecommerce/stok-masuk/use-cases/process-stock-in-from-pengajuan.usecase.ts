@@ -19,6 +19,7 @@ export class ProcessStockInFromPengajuanUseCase {
       jumlahDisetujui: number;
       hargaGudang: number;
       ukuranKemasanKg?: number;
+      estimasiSegarHari?: number;
     }>,
   ): Promise<StokMasukProduk[]> {
     const stokMasukRecords: StokMasukProduk[] = [];
@@ -43,6 +44,9 @@ export class ProcessStockInFromPengajuanUseCase {
           ukuranKemasanKg: ukuranKg,
           jumlahKemasanMasuk: item.jumlahDisetujui,
           jumlahKemasanTersisa: item.jumlahDisetujui,
+          tanggalKadaluarsa: item.estimasiSegarHari 
+            ? new Date(Date.now() + item.estimasiSegarHari * 24 * 60 * 60 * 1000).toISOString() 
+            : undefined,
         });
 
         stokMasukRecords.push(stokMasuk);

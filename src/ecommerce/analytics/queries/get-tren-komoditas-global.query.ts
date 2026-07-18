@@ -29,14 +29,14 @@ export class GetTrenKomoditasGlobalQuery {
     const [txCurrent, txPrev] = await Promise.all([
       this.prisma.transaksiKeuntungan.findMany({
         where: {
-          statusPesanan: "SELESAI",
+          statusPesanan: { in: ["SELESAI", "DITUTUP"] as any },
           tanggalTransaksi: { gte: currentRange.gte, lte: currentRange.lte },
         },
         select: { produkId: true, jumlahTerjual: true, hargaJual: true, id: true },
       }),
       this.prisma.transaksiKeuntungan.findMany({
         where: {
-          statusPesanan: "SELESAI",
+          statusPesanan: { in: ["SELESAI", "DITUTUP"] as any },
           tanggalTransaksi: { gte: prevRange.gte, lte: prevRange.lte },
         },
         select: { produkId: true, jumlahTerjual: true, hargaJual: true },
@@ -113,3 +113,7 @@ export class GetTrenKomoditasGlobalQuery {
     );
   }
 }
+
+
+
+

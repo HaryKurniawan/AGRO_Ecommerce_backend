@@ -2,26 +2,26 @@
 // PostgreSQL Schema: "core"
 
 model Pengguna {
-  id                     String    @id @default(uuid())
-  email                  String    @unique
-  kataSandi              String
-  nama                   String?
-  noTelepon              String?
-  peran                  Peran     @default(KONSUMEN)
-  aktif                  Boolean   @default(true)
-  emailTerverifikasiPada DateTime?
-  tokenVerifikasiEmail   String? // Token OTP atau token link verifikasi
-  kadaluarsaTokenEmail   DateTime? // Kapan token kadaluarsa
+  id                         String    @id @default(uuid())
+  email                      String    @unique
+  kataSandi                  String
+  nama                       String?
+  noTelepon                  String?
+  peran                      Peran     @default(KONSUMEN)
+  aktif                      Boolean   @default(true)
+  emailTerverifikasiPada     DateTime?
+  tokenVerifikasiEmail       String? // Token OTP atau token link verifikasi
+  kadaluarsaTokenEmail       DateTime? // Kapan token kadaluarsa
   noTeleponTerverifikasiPada DateTime? // Kapan WA diverifikasi
-  otpWhatsapp            String? // Token OTP WA
-  kadaluarsaOtpWhatsapp  DateTime? // Kapan OTP WA kadaluarsa
-  googleId               String?   @unique // ID dari Google OAuth
-  tokenResetKataSandi    String? // Token untuk reset password
-  kadaluarsaTokenReset   DateTime? // Kapan token reset kadaluarsa
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  otpWhatsapp                String? // Token OTP WA
+  kadaluarsaOtpWhatsapp      DateTime? // Kapan OTP WA kadaluarsa
+  googleId                   String?   @unique // ID dari Google OAuth
+  tokenResetKataSandi        String? // Token untuk reset password
+  kadaluarsaTokenReset       DateTime? // Kapan token reset kadaluarsa
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 
-  profilPenjual  ProfilPenjual?
+  profilPenjual ProfilPenjual?
 
   // Ecommerce relations
   ecomCart       KeranjangEcom?
@@ -31,10 +31,10 @@ model Pengguna {
   stockHistories RiwayatStokProduk[]
   productReviews UlasanProdukEcom[]
 
-  kurirTokoId       String?
-  kurirToko         Toko?                 @relation("StoreCouriers", fields: [kurirTokoId], references: [id])
-  logAktivitas      LogAktivitas[]
-  profilPenjualKurir ProfilPenjual?       @relation("ProfilPenjualKurir")
+  kurirTokoId        String?
+  kurirToko          Toko?          @relation("StoreCouriers", fields: [kurirTokoId], references: [id])
+  logAktivitas       LogAktivitas[]
+  profilPenjualKurir ProfilPenjual? @relation("ProfilPenjualKurir")
 
   @@map("pengguna")
   @@schema("core")
@@ -55,26 +55,26 @@ enum Peran {
 // ─── Profil Penjual ──────────────────────────────────────────────────────────
 
 model ProfilPenjual {
-  id                  String        @id @default(uuid())
-  penggunaId          String        @unique
-  namaToko            String
-  slugToko            String        @unique
-  deskripsiToko       String?
-  logoTokoUrl         String?
-  bannerTokoUrl       String?
-  noTelepon           String
-  alamat              String
-  kota                String
-  provinsi            String
-  kodePos             String
-  status              StatusPenjual @default(PENDING)
-  terverifikasiPada   DateTime?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  id                String        @id @default(uuid())
+  penggunaId        String        @unique
+  namaToko          String
+  slugToko          String        @unique
+  deskripsiToko     String?
+  logoTokoUrl       String?
+  bannerTokoUrl     String?
+  noTelepon         String
+  alamat            String
+  kota              String
+  provinsi          String
+  kodePos           String
+  status            StatusPenjual @default(PENDING)
+  terverifikasiPada DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  pengguna Pengguna @relation(fields: [penggunaId], references: [id], onDelete: Cascade)
+  pengguna Pengguna  @relation(fields: [penggunaId], references: [id], onDelete: Cascade)
   toko     Toko?
-  kurirId  String?  @unique
+  kurirId  String?   @unique
   kurir    Pengguna? @relation("ProfilPenjualKurir", fields: [kurirId], references: [id], onDelete: SetNull)
 
   @@map("profil_penjual")
@@ -89,7 +89,6 @@ enum StatusPenjual {
 
   @@schema("core")
 }
-
 
 // ─── Chat ────────────────────────────────────────────────────────────────────
 

@@ -10,6 +10,7 @@ import { CheckStockAvailabilityUseCase } from "./use-cases/check-stock-availabil
 import { ProcessStockInFromPengajuanUseCase } from "./use-cases/process-stock-in-from-pengajuan.usecase";
 import {
   FindAvailableStockBatchesUseCase,
+  FindAllStockBatchesUseCase,
   UpdateBatchStockUseCase,
 } from "./use-cases/batch-stock.usecase";
 
@@ -23,6 +24,7 @@ import {
     CheckStockAvailabilityUseCase,
     ProcessStockInFromPengajuanUseCase,
     FindAvailableStockBatchesUseCase,
+    FindAllStockBatchesUseCase,
     UpdateBatchStockUseCase,
     StokMasukService,
   ],

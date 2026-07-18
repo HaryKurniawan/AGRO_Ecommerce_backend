@@ -36,6 +36,7 @@ export class GetOrderReviewStatusUseCase {
       productFoto: item.produk.gambarUrl,
       productHarga: item.produk.harga,
       jumlah: item.jumlah,
+      isGrosir: pesanan.isGrosir,
       isReviewed: !!item.ulasan,
       review: item.ulasan ?? null,
     }));

@@ -22,7 +22,7 @@ export class GetRiwayatTerlarisQuery {
     const prevRange = prevMonthRange(month, year);
 
     const whereBase = {
-      statusPesanan: "SELESAI" as const,
+      statusPesanan: { in: ["SELESAI", "DITUTUP"] as any },
       ...(filters.tokoId && { tokoId: filters.tokoId }),
     };
 
@@ -103,3 +103,7 @@ export class GetRiwayatTerlarisQuery {
     );
   }
 }
+
+
+
+

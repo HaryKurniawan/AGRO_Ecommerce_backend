@@ -9,8 +9,10 @@ import { CheckStockAvailabilityUseCase } from "./use-cases/check-stock-availabil
 import { ProcessStockInFromPengajuanUseCase } from "./use-cases/process-stock-in-from-pengajuan.usecase";
 import {
   FindAvailableStockBatchesUseCase,
+  FindAllStockBatchesUseCase,
   UpdateBatchStockUseCase,
 } from "./use-cases/batch-stock.usecase";
+import { StokMasukRepository } from "./stok-masuk.repository";
 
 @Injectable()
 export class StokMasukService {
@@ -21,6 +23,8 @@ export class StokMasukService {
     private checkAvailabilityUC: CheckStockAvailabilityUseCase,
     private processFromPengajuanUC: ProcessStockInFromPengajuanUseCase,
     private findAvailableBatchesUC: FindAvailableStockBatchesUseCase,
+    private findAllBatchesUC: FindAllStockBatchesUseCase,
+    private stokMasukRepository: StokMasukRepository,
     private updateBatchUC: UpdateBatchStockUseCase,
   ) {}
 
@@ -32,6 +36,12 @@ export class StokMasukService {
     produkId: string,
   ): Promise<StokMasukProduk[]> {
     return this.findAvailableBatchesUC.execute(produkId);
+  }
+
+  async findAllStockBatches(
+    produkId: string,
+  ): Promise<StokMasukProduk[]> {
+    return this.findAllBatchesUC.execute(produkId);
   }
 
   async updateBatchStock(
@@ -74,8 +84,17 @@ export class StokMasukService {
       jumlahDisetujui: number;
       hargaGudang: number;
       ukuranKemasanKg?: number;
+      estimasiSegarHari?: number;
     }>,
   ): Promise<StokMasukProduk[]> {
     return this.processFromPengajuanUC.execute(pengajuanStokId, items);
+  }
+
+  async updateBatchExpiry(
+    batchId: string,
+    tanggalKadaluarsa: string | null,
+  ): Promise<StokMasukProduk> {
+    const parsedDate = tanggalKadaluarsa ? new Date(tanggalKadaluarsa) : null;
+    return this.stokMasukRepository.updateBatchExpiry(batchId, parsedDate);
   }
 }

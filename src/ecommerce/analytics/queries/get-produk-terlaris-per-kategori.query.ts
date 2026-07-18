@@ -22,7 +22,7 @@ export class GetProdukTerlarisPerKategoriQuery {
 
     const records = await this.prisma.transaksiKeuntungan.findMany({
       where: {
-        statusPesanan: "SELESAI",
+        statusPesanan: { in: ["SELESAI", "DITUTUP"] as any },
         tanggalTransaksi: { gte: dateRange.gte, lte: dateRange.lte },
         ...(filters.tokoId && { tokoId: filters.tokoId }),
       },
@@ -91,3 +91,7 @@ export class GetProdukTerlarisPerKategoriQuery {
     );
   }
 }
+
+
+
+

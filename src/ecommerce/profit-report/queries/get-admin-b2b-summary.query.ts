@@ -23,7 +23,7 @@ export class GetAdminB2BSummaryQuery {
     if (filters.endDate) {
       where.tanggalTransaksi = {
         ...where.tanggalTransaksi,
-        lte: new Date(filters.endDate),
+        lte: new Date(new Date(filters.endDate).setHours(23, 59, 59, 999)),
       };
     }
 
@@ -59,3 +59,4 @@ export class GetAdminB2BSummaryQuery {
     };
   }
 }
+

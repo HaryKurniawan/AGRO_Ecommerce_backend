@@ -13,7 +13,7 @@ export class GenerateOrderReportUseCase {
   ): Promise<Buffer> {
     const where: any = {
       item: { some: { produk: { tokoId } } },
-      status: "SELESAI",
+      status: { in: ["SELESAI", "DITUTUP"] },
     };
 
     if (startDate || endDate) {

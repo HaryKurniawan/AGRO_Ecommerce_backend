@@ -31,7 +31,7 @@ export class SellerFindOrdersUseCase {
           konsumen: { select: { nama: true, email: true } },
           item: {
             where: { produk: { tokoId } },
-            include: { produk: true },
+            include: { produk: true, transaksiKeuntungan: true },
           },
           pengiriman: true,
         },

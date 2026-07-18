@@ -33,6 +33,7 @@ import { UpdateProductDto } from "./dto/update-product.dto";
 import { UpdateProductStatusDto } from "./dto/update-product-status.dto";
 import { UpdateProductStockDto } from "./dto/update-product-stock.dto";
 import { UpdateProductPhotosDto } from "./dto/update-product-photos.dto";
+import { StokMasukService } from "../stok-masuk/stok-masuk.service";
 
 @ApiTags("Ecom Produk")
 @Controller("ecom-produk")
@@ -50,6 +51,7 @@ export class EcomProductsController {
     private readonly generateStockReportUC: GenerateStockReportUseCase,
     private readonly updatePhotosUC: UpdateProductPhotosUseCase,
     private readonly productsRepo: ProdukEcomsRepository,
+    private readonly stokMasukService: StokMasukService,
   ) {}
 
   @Get()
@@ -122,6 +124,25 @@ export class EcomProductsController {
       page ? +page : undefined,
       limit ? +limit : undefined,
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Get(":id/batches")
+  @ApiOperation({ summary: "Get stock batches for a produk" })
+  async getStockBatches(@Param("id") id: string): Promise<any> {
+    return this.stokMasukService.findAllStockBatches(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Patch(":id/batches/:batchId/expiry")
+  @ApiOperation({ summary: "Update stock batch expiry date" })
+  async updateBatchExpiry(
+    @Param("batchId") batchId: string,
+    @Body() data: { tanggalKadaluarsa: string | null }
+  ): Promise<any> {
+    return this.stokMasukService.updateBatchExpiry(batchId, data.tanggalKadaluarsa);
   }
 
   @Get(":id")

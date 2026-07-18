@@ -19,7 +19,11 @@ export class StokMasukRepository {
         tanggalMasuk: data.tanggalMasuk
           ? new Date(data.tanggalMasuk)
           : new Date(),
+        tanggalKadaluarsa: data.tanggalKadaluarsa
+          ? new Date(data.tanggalKadaluarsa)
+          : undefined,
         varianKemasanId: data.varianKemasanId,
+
         ukuranKemasanKg: data.ukuranKemasanKg,
         jumlahKemasanMasuk: data.jumlahKemasanMasuk,
         jumlahKemasanTersisa: data.jumlahKemasanTersisa,
@@ -41,6 +45,28 @@ export class StokMasukRepository {
     });
   }
 
+  async findAllStockBatches(
+    produkId: string,
+  ): Promise<StokMasukProduk[]> {
+    return this.prisma.stokMasukProduk.findMany({
+      where: {
+        produkId,
+      },
+      include: {
+        pengajuanStok: {
+          select: {
+            id: true,
+            createdAt: true,
+          }
+        },
+        varianKemasan: true,
+      },
+      orderBy: {
+        tanggalMasuk: "desc", // newest first
+      },
+    });
+  }
+
   async updateBatchStock(
     batchId: string,
     newQty: number,
@@ -50,6 +76,17 @@ export class StokMasukRepository {
       data: { jumlahTersisa: newQty },
     });
   }
+
+  async updateBatchExpiry(
+    batchId: string,
+    tanggalKadaluarsa: Date | null,
+  ): Promise<StokMasukProduk> {
+    return this.prisma.stokMasukProduk.update({
+      where: { id: batchId },
+      data: { tanggalKadaluarsa },
+    });
+  }
+
 
   async incrementBatchStock(
     batchId: string,

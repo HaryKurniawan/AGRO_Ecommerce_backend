@@ -18,10 +18,10 @@ export class WholesaleOrderItemDto {
 
   @ApiProperty({
     description: "Jumlah pembelian dalam kg/satuan (Grosir)",
-    minimum: 300,
+    minimum: 1,
   })
   @IsNumber()
-  @Min(300)
+  @Min(1)
   jumlah: number;
 
   @ApiProperty({ description: "Harga satuan produk" })
@@ -33,6 +33,16 @@ export class WholesaleOrderItemDto {
   @IsString()
   @IsOptional()
   catatan?: string;
+}
+
+export class WholesalePackagingSpecDto {
+  @ApiProperty()
+  @IsNumber()
+  ukuranKg: number;
+
+  @ApiProperty()
+  @IsNumber()
+  jumlahBungkus: number;
 }
 
 export class CreatePesananGrosirDto {
@@ -67,4 +77,16 @@ export class CreatePesananGrosirDto {
   @Min(0)
   @IsOptional()
   ongkir?: number;
+
+  @ApiPropertyOptional({ description: "Detail kemasan yang dipilih untuk grosir" })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => WholesalePackagingSpecDto)
+  @IsOptional()
+  packagingSpecs?: WholesalePackagingSpecDto[];
+
+  @ApiPropertyOptional({ description: "Diskon persen yang berlaku saat pesanan dibuat" })
+  @IsNumber()
+  @IsOptional()
+  diskonGrosirPersen?: number;
 }

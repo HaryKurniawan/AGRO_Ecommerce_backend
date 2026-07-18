@@ -72,7 +72,7 @@ export class GetTrenProdukBulananQuery {
 
     const whereBase = {
       tokoId: filters.tokoId,
-      status: "SELESAI" as const,
+      status: { in: ["SELESAI", "DITUTUP"] as any },
     };
 
     const [txCurrent, txPrev] = await Promise.all([
@@ -160,3 +160,7 @@ export class GetTrenProdukBulananQuery {
     );
   }
 }
+
+
+
+

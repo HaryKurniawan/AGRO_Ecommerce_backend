@@ -20,6 +20,19 @@ export class FindAvailableStockBatchesUseCase {
 }
 
 @Injectable()
+export class FindAllStockBatchesUseCase {
+  constructor(private stokMasukRepository: StokMasukRepository) {}
+
+  async execute(produkId: string) {
+    if (!produkId) {
+      throw new BadRequestException("Product ID is required");
+    }
+
+    return this.stokMasukRepository.findAllStockBatches(produkId);
+  }
+}
+
+@Injectable()
 export class UpdateBatchStockUseCase {
   constructor(private stokMasukRepository: StokMasukRepository) {}
 

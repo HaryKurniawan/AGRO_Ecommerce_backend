@@ -434,6 +434,7 @@ export class UpdatePengajuanStokStatusUseCase {
       jumlahDisetujui: number;
       hargaGudang: number;
       ukuranKemasanKg: number;
+      estimasiSegarHari?: number;
     }> = [];
 
     for (const item of pengajuan.items) {
@@ -442,6 +443,7 @@ export class UpdatePengajuanStokStatusUseCase {
       );
 
       let produkEcomId = "";
+      let estimasiSegarHari = 3; // Default 3 hari
       const mapping = await this.prisma.mappingProdukGudang.findFirst({
         where: {
           produkGudangId: item.produkGudangId,
@@ -456,7 +458,10 @@ export class UpdatePengajuanStokStatusUseCase {
             masterProdukId: mapping.masterProdukId,
           },
         });
-        if (product) produkEcomId = product.id;
+        if (product) {
+          produkEcomId = product.id;
+          estimasiSegarHari = product.estimasiSegarHari;
+        }
       }
 
       if (!produkEcomId) continue;
@@ -499,6 +504,7 @@ export class UpdatePengajuanStokStatusUseCase {
             jumlahDisetujui: pkg.jumlahKemasan,
             hargaGudang: item.hargaGudang,
             ukuranKemasanKg: pkg.ukuranKg,
+            estimasiSegarHari: estimasiSegarHari,
           });
         }
       }

@@ -24,7 +24,7 @@ export class GetPertumbuhanProdukQuery {
 
     const whereBase = {
       tokoId: filters.tokoId,
-      status: "SELESAI" as const,
+      status: { in: ["SELESAI", "DITUTUP"] as any },
     };
 
     const [txA, txB] = await Promise.all([
@@ -110,3 +110,7 @@ export class GetPertumbuhanProdukQuery {
     );
   }
 }
+
+
+
+

@@ -13,8 +13,10 @@ import { UpdateStockUseCase } from "./use-cases/update-stock.usecase";
 import { GetStockHistoryUseCase } from "./use-cases/get-stock-history.usecase";
 import { GenerateStockReportUseCase } from "./use-cases/generate-stock-report.usecase";
 import { UpdateProductPhotosUseCase } from "./use-cases/update-product-photos.usecase";
+import { StokMasukModule } from "../stok-masuk/stok-masuk.module";
 
 @Module({
+  imports: [StokMasukModule],
   controllers: [EcomProductsController],
   providers: [
     ProdukEcomsRepository,
