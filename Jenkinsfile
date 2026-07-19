@@ -16,6 +16,25 @@ pipeline {
 
     stages {
 
+        stage('Notify Start') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'telegram-bot-token', variable: 'TG_TOKEN'),
+                    string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
+                ]) {
+                    sh '''
+                    curl -sS -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+                        -d "chat_id=${TG_CHAT}" \
+                        -d "parse_mode=Markdown" \
+                        --data-urlencode "text=🚀 *MEMULAI DEPLOY*
+📦 Service: Backend (agro-backend)
+🔢 Build: #${BUILD_NUMBER}
+🔗 [Lihat Build](${BUILD_URL})"
+                    '''
+                }
+            }
+        }
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -163,10 +182,10 @@ EOF
                 string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
             ]) {
                 sh '''
-                curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
-                    -d chat_id="$TG_CHAT" \
-                    -d parse_mode=Markdown \
-                    -d text="✅ *DEPLOY BERHASIL*
+                curl -sS -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+                    -d "chat_id=${TG_CHAT}" \
+                    -d "parse_mode=Markdown" \
+                    --data-urlencode "text=✅ *DEPLOY BERHASIL*
 📦 Service: Backend (agro-backend)
 🔢 Build: #${BUILD_NUMBER}
 🌐 Port: 4000
@@ -181,10 +200,13 @@ EOF
                 string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
             ]) {
                 sh '''
-                curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
-                    -d chat_id="$TG_CHAT" \
-                    -d text="❌ DEPLOY GAGAL - Backend (agro-backend) #${BUILD_NUMBER}
-Cek log: ${BUILD_URL}console"
+                curl -sS -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+                    -d "chat_id=${TG_CHAT}" \
+                    -d "parse_mode=Markdown" \
+                    --data-urlencode "text=❌ *DEPLOY GAGAL*
+📦 Service: Backend (agro-backend)
+🔢 Build: #${BUILD_NUMBER}
+🔗 [Cek Log Build](${BUILD_URL}console)"
                 '''
             }
         }
