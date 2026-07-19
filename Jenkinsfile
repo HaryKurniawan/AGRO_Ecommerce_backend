@@ -150,22 +150,43 @@ EOF
     post {
 
         always {
-
             sh '''
             echo "Membersihkan cache..."
-
             docker image prune -f || true
             docker builder prune -f || true
             '''
-
         }
 
         success {
-            echo "✅ Deploy berhasil."
+            withCredentials([
+                string(credentialsId: 'telegram-bot-token', variable: 'TG_TOKEN'),
+                string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
+            ]) {
+                sh '''
+                curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+                    -d chat_id="$TG_CHAT" \
+                    -d parse_mode=Markdown \
+                    -d text="✅ *DEPLOY BERHASIL*
+📦 Service: Backend (agro-backend)
+🔢 Build: #${BUILD_NUMBER}
+🌐 Port: 4000
+🔗 [Lihat Build](${BUILD_URL})"
+                '''
+            }
         }
 
         failure {
-            echo "❌ Deploy gagal."
+            withCredentials([
+                string(credentialsId: 'telegram-bot-token', variable: 'TG_TOKEN'),
+                string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
+            ]) {
+                sh '''
+                curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+                    -d chat_id="$TG_CHAT" \
+                    -d text="❌ DEPLOY GAGAL - Backend (agro-backend) #${BUILD_NUMBER}
+Cek log: ${BUILD_URL}console"
+                '''
+            }
         }
     }
 }
