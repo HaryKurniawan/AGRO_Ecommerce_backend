@@ -23,13 +23,17 @@ pipeline {
                     string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
                 ]) {
                     sh '''
-                    curl -sS -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
-                        -d "chat_id=${TG_CHAT}" \
-                        -d "parse_mode=Markdown" \
-                        --data-urlencode "text=🚀 *MEMULAI DEPLOY*
-📦 Service: Backend (agro-backend)
-🔢 Build: #${BUILD_NUMBER}
-🔗 [Lihat Build](${BUILD_URL})"
+                    TOKEN=$(echo "$TG_TOKEN" | tr -d '\r\n ')
+                    CHAT=$(echo "$TG_CHAT" | tr -d '\r\n ')
+                    curl -sS -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+                        -H "Content-Type: application/json" \
+                        -d @- <<EOF
+{
+    "chat_id": "${CHAT}",
+    "parse_mode": "Markdown",
+    "text": "🚀 *MEMULAI DEPLOY*\\n📦 Service: Backend (agro-backend)\\n🔢 Build: #${BUILD_NUMBER}\\n🔗 [Lihat Build](${BUILD_URL})"
+}
+EOF
                     '''
                 }
             }
@@ -182,14 +186,17 @@ EOF
                 string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
             ]) {
                 sh '''
-                curl -sS -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
-                    -d "chat_id=${TG_CHAT}" \
-                    -d "parse_mode=Markdown" \
-                    --data-urlencode "text=✅ *DEPLOY BERHASIL*
-📦 Service: Backend (agro-backend)
-🔢 Build: #${BUILD_NUMBER}
-🌐 Port: 4000
-🔗 [Lihat Build](${BUILD_URL})"
+                TOKEN=$(echo "$TG_TOKEN" | tr -d '\r\n ')
+                CHAT=$(echo "$TG_CHAT" | tr -d '\r\n ')
+                curl -sS -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+                    -H "Content-Type: application/json" \
+                    -d @- <<EOF
+{
+    "chat_id": "${CHAT}",
+    "parse_mode": "Markdown",
+    "text": "✅ *DEPLOY BERHASIL*\\n📦 Service: Backend (agro-backend)\\n🔢 Build: #${BUILD_NUMBER}\\n🌐 Port: 4000\\n🔗 [Lihat Build](${BUILD_URL})"
+}
+EOF
                 '''
             }
         }
@@ -200,13 +207,17 @@ EOF
                 string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
             ]) {
                 sh '''
-                curl -sS -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
-                    -d "chat_id=${TG_CHAT}" \
-                    -d "parse_mode=Markdown" \
-                    --data-urlencode "text=❌ *DEPLOY GAGAL*
-📦 Service: Backend (agro-backend)
-🔢 Build: #${BUILD_NUMBER}
-🔗 [Cek Log Build](${BUILD_URL}console)"
+                TOKEN=$(echo "$TG_TOKEN" | tr -d '\r\n ')
+                CHAT=$(echo "$TG_CHAT" | tr -d '\r\n ')
+                curl -sS -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+                    -H "Content-Type: application/json" \
+                    -d @- <<EOF
+{
+    "chat_id": "${CHAT}",
+    "parse_mode": "Markdown",
+    "text": "❌ *DEPLOY GAGAL*\\n📦 Service: Backend (agro-backend)\\n🔢 Build: #${BUILD_NUMBER}\\n🔗 [Cek Log Build](${BUILD_URL}console)"
+}
+EOF
                 '''
             }
         }
