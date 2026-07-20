@@ -52,4 +52,14 @@ export class CreateStoreDto {
   @IsString({ each: true })
   @IsOptional()
   komoditasUnggulan?: string[];
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  telegramBotToken?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  telegramChatId?: string;
 }

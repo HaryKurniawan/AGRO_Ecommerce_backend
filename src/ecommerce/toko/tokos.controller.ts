@@ -7,6 +7,7 @@ import {
   Post,
   Query,
   UseGuards,
+  BadRequestException,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 
@@ -23,8 +24,8 @@ import { FindMyStoreUseCase } from "./use-cases/find-my-toko.usecase";
 import { AdminUpdateStoreStatusUseCase } from "./use-cases/admin-update-toko-status.usecase";
 import { GetNearestStoreUseCase } from "./use-cases/get-nearest-toko.usecase";
 import { GetTokoStockHistoryUseCase } from "./use-cases/get-toko-stock-history.usecase";
-
 import { UpdateStoreStatusDto } from "./dto/update-store-status.dto";
+import { PerTokoTelegramService } from "../../core/telegram/per-toko-telegram.service";
 
 @ApiTags("Toko")
 @Controller("toko")
@@ -39,7 +40,29 @@ export class StoresController {
     private readonly adminUpdateStatusUC: AdminUpdateStoreStatusUseCase,
     private readonly getNearestStoreUC: GetNearestStoreUseCase,
     private readonly getStockHistoryUC: GetTokoStockHistoryUseCase,
+    private readonly perTokoTelegramService: PerTokoTelegramService,
   ) {}
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post("telegram-test")
+  @ApiOperation({ summary: "Test Telegram Connection" })
+  async testTelegramConnection(
+    @Body() dto: { telegramBotToken: string; telegramChatId: string }
+  ): Promise<any> {
+    const success = await this.perTokoTelegramService.validateTelegramConfig(
+      dto.telegramBotToken,
+      dto.telegramChatId
+    );
+    if (!success) {
+      throw new BadRequestException(
+        "Gagal terhubung ke Telegram. Pastikan Bot Token dan Chat ID benar, dan Anda sudah memulai chat dengan bot."
+      );
+    }
+    // Start polling for this bot if connection is successful
+    this.perTokoTelegramService.startPollingForBot(dto.telegramBotToken, dto.telegramChatId);
+    return { message: "Koneksi Telegram berhasil!" };
+  }
 
   @Get()
   @ApiOperation({ summary: "Get all active toko" })

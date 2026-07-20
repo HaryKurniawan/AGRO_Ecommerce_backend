@@ -28,7 +28,7 @@ export class FindMyStoreUseCase {
         } as any,
         include: {
           kurirStaffs: true,
-          penjual: { include: { kurir: true } }
+          penjual: { include: { kurir: true, pengguna: true } }
         } as any,
       });
     } else {
@@ -43,7 +43,7 @@ export class FindMyStoreUseCase {
         include: {
           produk: { orderBy: { createdAt: "desc" }, take: 20 },
           kurirStaffs: true,
-          penjual: { include: { kurir: true } },
+          penjual: { include: { kurir: true, pengguna: true } },
         } as any,
       });
     }

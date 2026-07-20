@@ -14,6 +14,7 @@ import * as crypto from "crypto";
 
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { ProfitReportService } from "../../profit-report/profit-report.service";
+import { PerTokoTelegramService } from "../../../core/telegram/per-toko-telegram.service";
 
 @ApiTags("Payment - Xendit Webhook")
 @Controller("payment")
@@ -25,6 +26,7 @@ export class PaymentWebhookController {
     private readonly configService: ConfigService,
     private readonly eventEmitter: EventEmitter2,
     private readonly profitReportService: ProfitReportService,
+    private readonly perTokoTelegramService: PerTokoTelegramService,
   ) {}
 
   /**
@@ -103,6 +105,8 @@ export class PaymentWebhookController {
           where: { id: pesanan.id },
           data: { status: "DIPROSES" },
           include: {
+            toko: { select: { nama: true } },
+            konsumen: { select: { nama: true } },
             item: {
               include: {
                 produk: {
@@ -134,12 +138,36 @@ export class PaymentWebhookController {
           );
         }
 
-        // Emit SSE event ke frontend untuk real-time update
         this.eventEmitter.emit("order.status.updated", {
           orderId: pesanan.id,
           status: updated.status,
           tokoId: pesanan.tokoId,
         });
+
+        // ── Fire-and-forget: Kirim notif Telegram ke seller (Pesanan Dibayar) ──
+        if (updated.tokoId) {
+          const detailProdukText = updated.item?.map(i => {
+            const namaProduk = i.produk?.namaEtalase || i.produk?.nama || "Produk";
+            return `- ${namaProduk} (${i.jumlah}x)`;
+          }).join("\n");
+
+          void (async () => {
+            try {
+              await this.perTokoTelegramService.sendNewOrderNotif({
+                tokoId: updated.tokoId!,
+                orderId: updated.id,
+                namaToko: updated.toko?.nama || "Toko",
+                namaPembeli: updated.konsumen?.nama || "Pembeli",
+                totalHarga: Number(updated.totalHarga || 0),
+                jumlahItem: updated.item?.length || 0,
+                metodeBayar: updated.metodeBayar || "Online",
+                detailProdukText,
+              });
+            } catch (error: any) {
+              this.logger.error(`Gagal mengirim notifikasi Telegram pesanan ${updated.id}: ${error?.message || error}`);
+            }
+          })();
+        }
 
         // Auto-Generate Pengajuan Stok untuk pesanan B2B
         if (updated.isGrosir) {

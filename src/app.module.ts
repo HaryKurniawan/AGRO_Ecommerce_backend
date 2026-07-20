@@ -44,6 +44,7 @@ import { BannerModule } from "./ecommerce/banner/banner.module";
 import { UploadModule } from "./core/unggah-foto/upload.module";
 import { ReviewsModule } from "./ecommerce/ulasan/ulasans.module";
 import { DeliveryBatchModule } from "./ecommerce/delivery-batch/delivery-batch.module";
+import { TelegramModule } from "./core/telegram/telegram.module";
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { DeliveryBatchModule } from "./ecommerce/delivery-batch/delivery-batch.m
 
     // Shared Services (Global)
     CommonModule,
+    TelegramModule,
 
     // Core Modules
     AuthModule,
