@@ -193,8 +193,16 @@ export class PaymentWebhookController {
               // Ignore parse error
             }
 
+            let tipePengiriman: any = "DEFAULT";
+            let realCatatan = updated.catatan || "";
+            const matchTipe = realCatatan.match(/\[TIPE_PENGIRIMAN:(DEFAULT|CUSTOM)\]/);
+            if (matchTipe) {
+              tipePengiriman = matchTipe[1];
+              realCatatan = realCatatan.replace(/\[TIPE_PENGIRIMAN:(DEFAULT|CUSTOM)\]/g, "").trim();
+            }
+
             const catatan =
-              `Pesanan B2B (${updated.id}): Kirim langsung ke alamat konsumen ${gpsLink}`.trim();
+              `Pesanan B2B (${updated.id}): Kirim langsung ke alamat konsumen ${gpsLink}. Catatan: ${realCatatan}`.trim();
 
             await this.prisma.pengajuanStokToko.create({
               data: {
@@ -202,6 +210,9 @@ export class PaymentWebhookController {
                 gudangId: gudangId,
                 status: "SELESAI",
                 modePengemasan: "DEFAULT",
+                tipePengiriman: tipePengiriman,
+                tanggalPermintaanKirim: updated.jadwalKirim,
+                estimasiSampai: updated.jadwalKirim, // Estimasi = jadwal kirim (sudah dihitung H+2 saat checkout)
                 catatan: catatan,
                 items: {
                   create: updated.item.map((i) => {

@@ -503,19 +503,22 @@ model InventarisToko {
 }
 
 model PengajuanStokToko {
-  id              String              @id @default(uuid())
-  tokoId          String
-  gudangId        String
-  status          StatusPengajuanStok @default(DIAJUKAN)
-  modePengemasan  ModePengemasan      @default(DEFAULT)
-  catatan         String?
-  isPesananGrosir Boolean             @default(false)
-  alamatKirim     String?
-  lat             Float?
-  lng             Float?
-  konsumenId      String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id                     String              @id @default(uuid())
+  tokoId                 String
+  gudangId               String
+  status                 StatusPengajuanStok @default(DIAJUKAN)
+  modePengemasan         ModePengemasan      @default(DEFAULT)
+  tipePengiriman         TipePengiriman      @default(DEFAULT)
+  tanggalPermintaanKirim DateTime?
+  estimasiSampai         DateTime?
+  catatan                String?
+  isPesananGrosir        Boolean             @default(false)
+  alamatKirim            String?
+  lat                    Float?
+  lng                    Float?
+  konsumenId             String?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
 
   toko      Toko                @relation(fields: [tokoId], references: [id])
   items     ItemPengajuanStok[]
@@ -804,5 +807,11 @@ model BannerPromo {
   updatedAt DateTime @updatedAt
 
   @@map("ecom_banner_promos")
+  @@schema("ecommerce")
+}
+
+enum TipePengiriman {
+  DEFAULT
+  CUSTOM
   @@schema("ecommerce")
 }

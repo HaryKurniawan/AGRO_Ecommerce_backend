@@ -18,6 +18,8 @@ export class CreatePengajuanStokUseCase {
       gudangId: string;
       catatan?: string;
       modePengemasan?: "DEFAULT" | "CUSTOM";
+      tipePengiriman?: "DEFAULT" | "CUSTOM";
+      tanggalPermintaanKirim?: string | Date;
       items: {
         produkGudangId: string;
         jumlahPermintaan: number;
@@ -103,6 +105,36 @@ export class CreatePengajuanStokUseCase {
 
     const productDetails = await Promise.all(productDetailsPromises);
 
+    // ✅ Validate Tipe Pengiriman & Tanggal
+    const tipePengiriman = data.tipePengiriman || "DEFAULT";
+    let tanggalPermintaanKirim: Date | null = null;
+    let estimasiSampai: Date | null = null;
+    
+    if (tipePengiriman === "CUSTOM") {
+      if (!data.tanggalPermintaanKirim) {
+        throw new BadRequestException("Tanggal permintaan kirim harus diisi untuk tipe pengiriman CUSTOM");
+      }
+      tanggalPermintaanKirim = new Date(data.tanggalPermintaanKirim);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const hPlus2 = new Date(today);
+      hPlus2.setDate(hPlus2.getDate() + 2);
+      
+      if (tanggalPermintaanKirim < hPlus2) {
+        throw new BadRequestException("Tanggal permintaan kirim minimal H+2 dari hari ini");
+      }
+      estimasiSampai = tanggalPermintaanKirim;
+    } else {
+      // Default: 1-2 hari (we set it to H+2 for estimation)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const hPlus2 = new Date(today);
+      hPlus2.setDate(hPlus2.getDate() + 2);
+      estimasiSampai = hPlus2;
+    }
+
     // ✅ Create pengajuan with snapshot data
     const mode = data.modePengemasan || "DEFAULT";
     const pengajuan = await this.stokRepo.create({
@@ -112,6 +144,9 @@ export class CreatePengajuanStokUseCase {
         catatan: data.catatan,
         status: "DIAJUKAN",
         modePengemasan: mode as any,
+        tipePengiriman: tipePengiriman as any,
+        tanggalPermintaanKirim: tanggalPermintaanKirim,
+        estimasiSampai: estimasiSampai,
         items: {
           create: productDetails.map((item) => ({
             produkGudangId: item.produkGudangId,
@@ -156,6 +191,9 @@ export class CreatePengajuanStokUseCase {
           gudangId: data.gudangId,
           catatan: data.catatan,
           modePengemasan: mode,
+          tipePengiriman: tipePengiriman,
+          tanggalPermintaanKirim: tanggalPermintaanKirim?.toISOString(),
+          estimasiSampai: estimasiSampai?.toISOString(),
           items: productDetails.map((item) => ({
             ...item,
             // kemasanDetail sudah ada di dalam productDetails, pastikan dikirim

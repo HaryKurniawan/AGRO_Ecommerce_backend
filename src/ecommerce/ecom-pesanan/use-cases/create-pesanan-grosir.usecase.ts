@@ -9,6 +9,17 @@ import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository
 import { ProdukEcomsRepository } from "../../ecom-produk/repositories/ecom-produks.repository";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 
+export interface CreatePesananGrosirDto {
+  item: { produkId: string; jumlah: number; harga: number }[];
+  catatan?: string;
+  alamatKirim?: string;
+  diskonGrosirPersen?: number;
+  tipePengiriman?: string;
+  tanggalPermintaanKirim?: string | Date;
+  metodeBayar?: string;
+  packagingSpecs?: Record<string, unknown>[];
+}
+
 @Injectable()
 export class CreatePesananGrosirUseCase {
   constructor(
@@ -17,8 +28,8 @@ export class CreatePesananGrosirUseCase {
     private readonly prisma: PrismaService,
   ) {}
 
-  async execute(penggunaId: string, data: any) {
-    const { item, catatan, ongkir, alamatKirim } = data;
+  async execute(penggunaId: string, data: CreatePesananGrosirDto) {
+    const { item, catatan, alamatKirim } = data;
 
     if (!item || item.length === 0) {
       throw new BadRequestException(
@@ -97,7 +108,7 @@ export class CreatePesananGrosirUseCase {
     const ongkosKirimGrosir = tokoConfig?.ongkosKirimGrosir || 0;
 
     const subtotal = item.reduce(
-      (sum: number, it: any) => sum + it.harga * it.jumlah,
+      (sum: number, it) => sum + it.harga * it.jumlah,
       0,
     );
 
@@ -105,6 +116,31 @@ export class CreatePesananGrosirUseCase {
     const diskonPersen = data.diskonGrosirPersen || 0;
     const nominalDiskon = (subtotal * diskonPersen) / 100;
     const totalHarga = subtotal - nominalDiskon + ongkosKirimGrosir;
+
+    // Calculate jadwalKirim based on tipePengiriman
+    let jadwalKirim: Date | null = null;
+    const tipePengiriman = data.tipePengiriman || "DEFAULT";
+
+    if (tipePengiriman === "CUSTOM") {
+      if (!data.tanggalPermintaanKirim) {
+        throw new BadRequestException("Tanggal permintaan kirim harus diisi untuk tipe pengiriman CUSTOM");
+      }
+      jadwalKirim = new Date(data.tanggalPermintaanKirim);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const hPlus2 = new Date(today);
+      hPlus2.setDate(hPlus2.getDate() + 2);
+
+      if (jadwalKirim < hPlus2) {
+        throw new BadRequestException("Tanggal permintaan kirim minimal H+2 dari hari ini");
+      }
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const hPlus2 = new Date(today);
+      hPlus2.setDate(hPlus2.getDate() + 2);
+      jadwalKirim = hPlus2; // Estimasi default
+    }
 
     // Create the order with status MENUNGGU_KONFIRMASI_SELLER
     console.log("PACKAGING SPECS RECEIVED:", JSON.stringify(data.packagingSpecs));
@@ -118,12 +154,13 @@ export class CreatePesananGrosirUseCase {
         totalHarga,
         metodeBayar: data.metodeBayar || "MANUAL",
         alamatKirim: data.alamatKirim || "Default Address",
-        catatan,
         kemasanGrosir: data.packagingSpecs || [],
         diskonGrosirPersen: diskonPersen,
         diprosesOleh: "TOKO",
+        jadwalKirim: jadwalKirim,
+        catatan: catatan ? catatan + ` [TIPE_PENGIRIMAN:${tipePengiriman}]` : `[TIPE_PENGIRIMAN:${tipePengiriman}]`,
         item: {
-          create: item.map((it: any) => ({
+          create: item.map((it) => ({
             produkId: it.produkId,
             jumlah: it.jumlah,
             harga: it.harga,
