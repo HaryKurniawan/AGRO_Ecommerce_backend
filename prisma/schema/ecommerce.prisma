@@ -589,8 +589,10 @@ model KonfigurasiHargaToko {
 
 enum StatusPengajuanStok {
   DIAJUKAN
+  MENUNGGU_SEBAGIAN
   DIPROSES
   DIKIRIM
+  TIBA
   KONFIRMASI_DITERIMA
   SELESAI
   DITOLAK

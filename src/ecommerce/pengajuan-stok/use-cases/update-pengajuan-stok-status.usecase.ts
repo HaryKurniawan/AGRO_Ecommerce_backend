@@ -93,7 +93,7 @@ export class UpdatePengajuanStokStatusUseCase {
     // Update the items with approved quantities if provided
     await this.updateApprovedQuantities(pengajuan, data.itemUpdates);
 
-    return this.stokRepo.update({
+    const updated = await this.stokRepo.update({
       where: { id: pengajuanId },
       data: {
         status: data.status,
@@ -108,6 +108,30 @@ export class UpdatePengajuanStokStatusUseCase {
         toko: true,
       },
     });
+
+    if (data.status === "SELESAI") {
+      try {
+        const gudangApiUrl = process.env.GUDANG_API_URL || "http://localhost:5005";
+        const apiKey = process.env.ECOMMERCE_API_KEY || "ecommerce-nestjs-to-gudang-express-secure-key";
+        const response = await fetch(`${gudangApiUrl}/api/pengajuan/webhook/from-ecommerce/${pengajuanId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          },
+          body: JSON.stringify({ status: data.status, catatan: data.catatan })
+        });
+        if (!response.ok) {
+          console.error(`[UpdatePengajuanStokStatus] Webhook error ${response.status}:`, await response.text());
+        } else {
+          console.log(`[UpdatePengajuanStokStatus] Successfully notified Gudang of SELESAI status`);
+        }
+      } catch (err) {
+        console.error("[UpdatePengajuanStokStatus] Failed to notify Gudang:", err);
+      }
+    }
+
+    return updated;
   }
 
   // --- Private Helper Methods ---

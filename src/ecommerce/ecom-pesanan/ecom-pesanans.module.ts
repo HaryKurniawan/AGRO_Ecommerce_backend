@@ -7,6 +7,7 @@ import { PesananAdminController } from "./controllers/pesanan-admin.controller";
 import { PesananCourierController } from "./controllers/pesanan-courier.controller";
 import { PesananGrosirController } from "./controllers/pesanan-grosir.controller";
 import { PaymentWebhookController } from "./controllers/payment-webhook.controller";
+import { PesananEventsController } from "./controllers/pesanan-events.controller";
 import { PesananEcomsRepository } from "./repositories/ecom-pesanans.repository";
 import { CreateOrderUseCase } from "./use-cases/create-pesanan.usecase";
 import { FindUserOrdersUseCase } from "./use-cases/find-pengguna-pesanans.usecase";
@@ -57,6 +58,7 @@ import { PengajuanStokModule } from "../pengajuan-stok/pengajuan-stok.module";
     PesananCourierController,
     PesananGrosirController,
     PaymentWebhookController,
+    PesananEventsController,
   ],
   providers: [
     PrismaService,

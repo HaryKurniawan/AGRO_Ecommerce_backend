@@ -17,7 +17,7 @@ export interface CreatePesananGrosirDto {
   tipePengiriman?: string;
   tanggalPermintaanKirim?: string | Date;
   metodeBayar?: string;
-  packagingSpecs?: Record<string, unknown>[];
+  packagingSpecs?: any[];
 }
 
 @Injectable()
@@ -154,7 +154,7 @@ export class CreatePesananGrosirUseCase {
         totalHarga,
         metodeBayar: data.metodeBayar || "MANUAL",
         alamatKirim: data.alamatKirim || "Default Address",
-        kemasanGrosir: data.packagingSpecs || [],
+        kemasanGrosir: (data.packagingSpecs || []) as any,
         diskonGrosirPersen: diskonPersen,
         diprosesOleh: "TOKO",
         jadwalKirim: jadwalKirim,
