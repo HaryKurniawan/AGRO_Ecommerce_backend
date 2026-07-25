@@ -3,40 +3,27 @@ pipeline {
     agent any
 
     environment {
-
         IMAGE_NAME = "agro-backend-image"
-
         CONTAINER_NAME = "agro-backend"
-
         ENV_CRED_ID = "agro-backend-env"
-
     }
 
     options {
-
         timestamps()
-
         disableConcurrentBuilds()
-
     }
 
     stages {
 
         stage('Notify Start') {
-
             steps {
-
                 withCredentials([
-
                     string(credentialsId: 'telegram-bot-token', variable: 'TG_TOKEN'),
-
                     string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
-
                 ]) {
-
                     sh '''
-TOKEN=$(echo "$TG_TOKEN" | tr -d '\r\n ')
-CHAT=$(echo "$TG_CHAT" | tr -d '\r\n ')
+TOKEN=$(echo "$TG_TOKEN" | tr -d '\\r\\n ')
+CHAT=$(echo "$TG_CHAT" | tr -d '\\r\\n ')
 
 curl -sS -X POST \
 https://api.telegram.org/bot${TOKEN}/sendMessage \
@@ -50,115 +37,79 @@ https://api.telegram.org/bot${TOKEN}/sendMessage \
 EOF
 '''
                 }
-
             }
-
         }
 
         stage('Checkout') {
-
             steps {
-
                 checkout scm
-
             }
-
         }
 
         stage('Inject Environment') {
-
             steps {
-
                 withCredentials([
-
                     file(credentialsId: "${ENV_CRED_ID}", variable: 'ENV_FILE')
-
                 ]) {
-
                     sh '''
-
-                    cp "$ENV_FILE" .env
-
-                    '''
-
+cp "$ENV_FILE" .env
+'''
                 }
-
             }
-
         }
 
         stage('Build Image') {
-
             steps {
-
                 sh '''
-
-                docker compose build --pull
-
-                '''
-
+docker compose build --pull
+'''
             }
+        }
 
+        stage('Prepare Database') {
+            steps {
+                sh '''
+docker rm -f ${CONTAINER_NAME} || true
+
+docker run -d \
+  --name ${CONTAINER_NAME} \
+  --network agro-network \
+  --env-file .env \
+  --entrypoint sh \
+  ${IMAGE_NAME} \
+  -c "sleep infinity"
+
+sleep 5
+
+docker exec ${CONTAINER_NAME} \
+npx prisma db push --accept-data-loss --skip-generate
+
+docker exec ${CONTAINER_NAME} \
+npm run prisma:seed || true
+
+docker rm -f ${CONTAINER_NAME}
+'''
+            }
         }
 
         stage('Deploy') {
-
             steps {
-
                 sh '''
+docker compose up -d --force-recreate
 
-                docker compose up -d --force-recreate
-
-                '''
-
+sleep 15
+'''
             }
-
-        }
-
-        stage('Database Migration') {
-
-            steps {
-
-                sh '''
-
-                docker exec ${CONTAINER_NAME} \
-                npx prisma migrate deploy
-
-                '''
-
-            }
-
-        }
-
-        stage('Database Seed') {
-
-            steps {
-
-                sh '''
-
-                docker exec ${CONTAINER_NAME} \
-                npm run prisma:seed || true
-
-                '''
-
-            }
-
         }
 
         stage('Container Status') {
-
             steps {
-
                 sh '''
+docker ps
 
-                docker ps
-
-                docker logs --tail 30 ${CONTAINER_NAME}
-
-                '''
-
+docker logs --tail 100 ${CONTAINER_NAME}
+'''
             }
-
         }
 
     }
@@ -166,18 +117,13 @@ EOF
     post {
 
         success {
-
             withCredentials([
-
                 string(credentialsId: 'telegram-bot-token', variable: 'TG_TOKEN'),
-
                 string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
-
             ]) {
-
                 sh '''
-TOKEN=$(echo "$TG_TOKEN" | tr -d '\r\n ')
-CHAT=$(echo "$TG_CHAT" | tr -d '\r\n ')
+TOKEN=$(echo "$TG_TOKEN" | tr -d '\\r\\n ')
+CHAT=$(echo "$TG_CHAT" | tr -d '\\r\\n ')
 
 curl -sS -X POST \
 https://api.telegram.org/bot${TOKEN}/sendMessage \
@@ -191,22 +137,16 @@ https://api.telegram.org/bot${TOKEN}/sendMessage \
 EOF
 '''
             }
-
         }
 
         failure {
-
             withCredentials([
-
                 string(credentialsId: 'telegram-bot-token', variable: 'TG_TOKEN'),
-
                 string(credentialsId: 'telegram-chat-id', variable: 'TG_CHAT')
-
             ]) {
-
                 sh '''
-TOKEN=$(echo "$TG_TOKEN" | tr -d '\r\n ')
-CHAT=$(echo "$TG_CHAT" | tr -d '\r\n ')
+TOKEN=$(echo "$TG_TOKEN" | tr -d '\\r\\n ')
+CHAT=$(echo "$TG_CHAT" | tr -d '\\r\\n ')
 
 curl -sS -X POST \
 https://api.telegram.org/bot${TOKEN}/sendMessage \
@@ -220,21 +160,13 @@ https://api.telegram.org/bot${TOKEN}/sendMessage \
 EOF
 '''
             }
-
         }
 
         always {
-
             sh '''
-
-            rm -f .env || true
-
-            docker builder prune -f
-
-            '''
-
+rm -f .env || true
+docker builder prune -f || true
+'''
         }
-
     }
-
 }

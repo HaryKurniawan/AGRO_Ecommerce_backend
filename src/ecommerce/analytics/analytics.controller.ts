@@ -30,9 +30,14 @@ import {
 import { TrenKomoditasGlobalFilterDto } from "./dto/tren-komoditas-global.dto";
 
 class DemandSignalFilterDto {
-  @ApiPropertyOptional({ description: "ID Gudang (dari GUDANG service)" })
+  @ApiPropertyOptional({ description: "Gudang ID" })
   @IsString()
   gudangId: string;
+
+  @ApiPropertyOptional({ description: "Periode (WEEK/MONTH/YEAR/SEMUA)" })
+  @IsOptional()
+  @IsString()
+  period?: string;
 
   @ApiPropertyOptional({ description: "Bulan (1-12)" })
   @IsOptional()
@@ -194,6 +199,7 @@ export class AnalyticsController {
   async getDemandSignalGudang(@Query() filters: DemandSignalFilterDto) {
     return this.getDemandSignalGudangUC.execute({
       gudangId: filters.gudangId,
+      period: filters.period,
       month: filters.month,
       year: filters.year,
       limit: filters.limit,

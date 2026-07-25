@@ -21,6 +21,7 @@ export class GetDemandSignalGudangUseCase {
 
   async execute(params: {
     gudangId: string;
+    period?: string;
     month?: number;
     year?: number;
     limit?: number;

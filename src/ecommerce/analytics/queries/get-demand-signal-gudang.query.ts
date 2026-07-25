@@ -2,8 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import {
-  monthYearToDateRange,
-  prevMonthRange,
+  getPertumbuhanDateRange,
 } from "../utils/period-to-date-range.util";
 import { DemandSignalItem } from "../use-cases/get-demand-signal-gudang.usecase";
 import { mapDemandSignalData } from "../mappers/demand-signal.mapper";
@@ -14,6 +13,7 @@ export class GetDemandSignalGudangQuery {
 
   async execute(params: {
     gudangId: string;
+    period?: string;
     month?: number;
     year?: number;
     limit?: number;
@@ -28,9 +28,11 @@ export class GetDemandSignalGudangQuery {
     const month = params.month ?? now.getMonth() + 1;
     const year = params.year ?? now.getFullYear();
     const limit = params.limit ?? 15;
+    const periodStr = params.period ? params.period.toUpperCase() : "MONTH";
 
-    const currentRange = monthYearToDateRange(month, year);
-    const prevRange = prevMonthRange(month, year);
+    const p = getPertumbuhanDateRange(periodStr, month, year);
+    const currentRange = { gte: p.periodeAStart, lte: p.periodeAEnd, label: p.labelFormatHelper(p.periodeAStart, p.periodeAEnd) };
+    const prevRange = { gte: p.periodeBStart, lte: p.periodeBEnd, label: p.labelFormatHelper(p.periodeBStart, p.periodeBEnd) };
 
     const pengajuanStok = await this.prisma.pengajuanStokToko.findMany({
       where: { gudangId: params.gudangId },
@@ -38,7 +40,13 @@ export class GetDemandSignalGudangQuery {
       distinct: ["tokoId"],
     });
 
-    const tokoIds = pengajuanStok.map((p) => p.tokoId);
+    let tokoIds = pengajuanStok.map((p) => p.tokoId);
+
+    // Fallback: Jika gudang belum memiliki toko afiliasi, gunakan data dari seluruh pasar (Semua Toko)
+    if (tokoIds.length === 0) {
+      const allToko = await this.prisma.toko.findMany({ select: { id: true } });
+      tokoIds = allToko.map((t) => t.id);
+    }
 
     if (tokoIds.length === 0) {
       return {
