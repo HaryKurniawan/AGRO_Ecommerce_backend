@@ -95,6 +95,9 @@ export class CreateSellerWithCourierUseCase {
         courierData.noTelepon || "",
         courierToken,
       );
+
+      // Jeda 1 detik agar tidak terkena limit rate Resend API (max 2 req/sec pada free tier)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     const hashedPassword = await bcrypt.hash(kataSandi, 10);

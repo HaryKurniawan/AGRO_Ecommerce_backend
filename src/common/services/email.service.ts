@@ -30,15 +30,23 @@ export class EmailService {
 
   private async sendEmail(to: string, subject: string, html: string) {
     try {
-      await this.resend.emails.send({
+      const response = await this.resend.emails.send({
         from: this.fromEmail,
         to,
         subject,
         html,
       });
-      this.logger.log(`Email successfully sent to ${to}`);
+
+      if (response.error) {
+        this.logger.error(
+          `Failed to send email to ${to} via Resend: [${response.error.name}] ${response.error.message}`,
+        );
+        return;
+      }
+
+      this.logger.log(`Email successfully sent to ${to}. ID: ${response.data?.id}`);
     } catch (err) {
-      this.logger.error(`Failed to send email to ${to}`, err);
+      this.logger.error(`Exception occurred while sending email to ${to}`, err);
     }
   }
 
@@ -60,7 +68,7 @@ export class EmailService {
         peran,
         verifyUrl,
       );
-      this.sendEmail(email, template.subject, template.html);
+      await this.sendEmail(email, template.subject, template.html);
       this.logger.log(`Welcome email triggered for ${email}`);
     } catch (err) {
       this.logger.error("Failed to trigger sendAdminCreatedWelcomeEmail", err);
@@ -78,7 +86,7 @@ export class EmailService {
     const verifyUrl = `${baseUrl}/register/verify-confirm?token=${token}`;
     try {
       const template = getEmailVerificationTemplate(nama, verifyUrl);
-      this.sendEmail(email, template.subject, template.html);
+      await this.sendEmail(email, template.subject, template.html);
       this.logger.log(`Verification email triggered for ${email}`);
     } catch (err) {
       this.logger.error("Failed to trigger sendEmailVerification", err);
@@ -96,7 +104,7 @@ export class EmailService {
     const resetUrl = `${baseUrl}/forgot-password/reset?token=${token}`;
     try {
       const template = getPasswordResetTemplate(nama, resetUrl);
-      this.sendEmail(email, template.subject, template.html);
+      await this.sendEmail(email, template.subject, template.html);
       this.logger.log(`Password reset email triggered for ${email}`);
     } catch (err) {
       this.logger.error("Failed to trigger sendPasswordReset", err);
@@ -111,7 +119,7 @@ export class EmailService {
   ): Promise<void> {
     try {
       const template = getCourierTaskTemplate(courierName, orderId, note);
-      this.sendEmail(email, template.subject, template.html);
+      await this.sendEmail(email, template.subject, template.html);
       this.logger.log(`Courier task notification triggered for ${email}`);
     } catch (err) {
       this.logger.error("Failed to trigger sendCourierTaskNotification", err);
@@ -126,7 +134,7 @@ export class EmailService {
     const orderUrl = `${this.frontendUrl}/dashboard/transaksi/${orderId}`;
     try {
       const template = getOrderArrivedTemplate(customerName, orderId, orderUrl);
-      this.sendEmail(email, template.subject, template.html);
+      await this.sendEmail(email, template.subject, template.html);
       this.logger.log(`Order arrived notification triggered for ${email}`);
     } catch (err) {
       this.logger.error("Failed to trigger sendOrderArrivedNotification", err);
@@ -148,7 +156,7 @@ export class EmailService {
         alamatToko,
         loginUrl,
       );
-      this.sendEmail(email, template.subject, template.html);
+      await this.sendEmail(email, template.subject, template.html);
       this.logger.log(`Seller activated email triggered for ${email}`);
     } catch (err) {
       this.logger.error("Failed to trigger sendSellerActivatedEmail", err);
