@@ -25,6 +25,6 @@
     },
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src", "__tests__", "prisma/seed.ts"],
+  "include": ["src", "__tests__"],
   "exclude": ["node_modules", "dist"]
 }
