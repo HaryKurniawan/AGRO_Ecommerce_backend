@@ -23,7 +23,7 @@ export const getAdminWelcomeTemplate = (
   const valueStyle =
     "color: #0f172a; padding: 6px 0; font-weight: 700; font-size: 13px; text-align: right;";
   const buttonStyle =
-    "display: block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff !important; text-align: center; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px; margin: 24px auto; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); max-width: 240px;";
+    "display: block; background-color: #059669; color: #ffffff !important; text-align: center; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px; margin: 24px auto; max-width: 240px;";
   const listStyle =
     "padding-left: 20px; margin: 0 0 24px 0; color: #475569; font-size: 13.5px; line-height: 1.7;";
   const footerStyle =
