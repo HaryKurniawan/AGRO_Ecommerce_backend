@@ -120,8 +120,8 @@ echo "======================================="
 SUCCESS=false
 for i in $(seq 1 30); do
     # Try both /api/health and /health endpoints
-    if docker exec $TEST_CONTAINER wget -qO- http://localhost:4000/api/health >/dev/null 2>&1 || \
-       docker exec $TEST_CONTAINER wget -qO- http://localhost:4000/health >/dev/null 2>&1; then
+    if docker exec $TEST_CONTAINER wget -qO- http://127.0.0.1:4000/api/health >/dev/null 2>&1 || \
+       docker exec $TEST_CONTAINER wget -qO- http://127.0.0.1:4000/health >/dev/null 2>&1; then
         echo "Health Check Passed"
         SUCCESS=true
         break
