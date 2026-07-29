@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 
 import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository";
 import { FindOrderByIdUseCase } from "./find-pesanan-by-id.usecase";
@@ -16,7 +16,12 @@ export class UpdateOrderStatusUseCase {
   ) {}
 
   async execute(id: string, status: string, fotoSebelumKirimUrl?: string) {
-    await this.findOrderById.execute(id);
+    const pesanan = await this.findOrderById.execute(id);
+    if ((pesanan as any).isGrosir) {
+      throw new BadRequestException(
+        "Pesanan grosir tidak dapat diperbarui melalui endpoint ini. Silakan kelola di menu Pesanan Grosir.",
+      );
+    }
     const updatedOrder = await this.ordersRepo.update({
       where: { id },
       data: {
