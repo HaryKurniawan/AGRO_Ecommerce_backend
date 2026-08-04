@@ -101,9 +101,18 @@ export class PaymentWebhookController {
         (pesanan.status === "MENUNGGU_BAYAR" ||
           pesanan.status === "DIBATALKAN")
       ) {
+        const updateData: any = { status: "DIPROSES" };
+        if (pesanan.isGrosir && !pesanan.jadwalKirim) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const hPlus2 = new Date(today);
+          hPlus2.setDate(hPlus2.getDate() + 2);
+          updateData.jadwalKirim = hPlus2;
+        }
+
         const updated = await this.prisma.pesananEcom.update({
           where: { id_pesanan: pesanan.id_pesanan },
-          data: { status: "DIPROSES" },
+          data: updateData,
           include: {
             toko: { select: { nama: true } },
             konsumen: { select: { nama: true } },
@@ -167,78 +176,6 @@ export class PaymentWebhookController {
               this.logger.error(`Gagal mengirim notifikasi Telegram pesanan ${updated.id_pesanan}: ${error?.message || error}`);
             }
           })();
-        }
-
-        // Auto-Generate Pengajuan Stok untuk pesanan B2B
-        if (updated.isGrosir) {
-          try {
-            let gudangId = "B2B_AUTO_WAREHOUSE";
-            for (const orderItem of updated.item) {
-              const mappings = orderItem.produk?.masterProduk?.mappingGudang;
-              if (mappings && mappings.length > 0) {
-                gudangId = mappings[0].gudangId;
-                break;
-              }
-            }
-
-            let gpsLink = "";
-            try {
-              if (updated.alamatKirim) {
-                const alamatObj = JSON.parse(updated.alamatKirim);
-                if (alamatObj.lat && alamatObj.lng) {
-                  gpsLink = `(GPS: https://www.google.com/maps?q=${alamatObj.lat},${alamatObj.lng})`;
-                }
-              }
-            } catch (e) {
-              // Ignore parse error
-            }
-
-            let tipePengiriman: any = "DEFAULT";
-            let realCatatan = updated.catatan || "";
-            const matchTipe = realCatatan.match(/\[TIPE_PENGIRIMAN:(DEFAULT|CUSTOM)\]/);
-            if (matchTipe) {
-              tipePengiriman = matchTipe[1];
-              realCatatan = realCatatan.replace(/\[TIPE_PENGIRIMAN:(DEFAULT|CUSTOM)\]/g, "").trim();
-            }
-
-            const catatan =
-              `Pesanan B2B (${updated.id_pesanan}): Kirim langsung ke alamat konsumen ${gpsLink}. Catatan: ${realCatatan}`.trim();
-
-            await this.prisma.pengajuanStokToko.create({
-              data: {
-                tokoId: updated.tokoId || "",
-                gudangId: gudangId,
-                status: "SELESAI",
-                modePengemasan: "DEFAULT",
-                tipePengiriman: tipePengiriman,
-                tanggalPermintaanKirim: updated.jadwalKirim,
-                estimasiSampai: updated.jadwalKirim, // Estimasi = jadwal kirim (sudah dihitung H+2 saat checkout)
-                catatan: catatan,
-                items: {
-                  create: updated.item.map((i) => {
-                    const mapped =
-                      i.produk?.masterProduk?.mappingGudang?.[0];
-                    return {
-                      produkGudangId: mapped?.produkGudangId || "UNKNOWN",
-                      namaProduk: i.produk?.nama || "Unknown Product",
-                      satuan: i.produk?.satuan || "kg",
-                      hargaGudang: i.produk?.harga || 0,
-                      jumlahPermintaan: i.jumlah,
-                      jumlahDisetujui: i.jumlah,
-                    };
-                  }),
-                },
-              },
-            });
-            this.logger.log(
-              `Auto-generated PengajuanStokToko B2B for order ${updated.id_pesanan}`,
-            );
-          } catch (err) {
-            this.logger.error(
-              `Failed to auto-generate B2B PengajuanStokToko for ${updated.id_pesanan}:`,
-              err,
-            );
-          }
         }
       }
       // EVENT: EXPIRED

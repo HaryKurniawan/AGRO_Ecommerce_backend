@@ -221,7 +221,7 @@ export class CreateOrderUseCase {
       }
 
       // ── 7. Jadwalkan auto-cancel 24 jam ───────────────────
-      await this.helpers.scheduleAutoCancels(createdOrders.map((o) => o.id));
+      await this.helpers.scheduleAutoCancels(createdOrders.map((o) => o.id_pesanan));
     }
 
     return createdOrders;

@@ -94,7 +94,7 @@ export class AjukanGrosirKeGudangUseCase {
       (pesanan.item as any[])
         .map((it: any) => `${it.produk?.nama || it.produkId} x${it.jumlah} kg`)
         .join(", ") +
-      `. Harap diproses dalam 3 hari kerja.`;
+      `. Kirim ke alamat Toko Seller. Harap diproses dalam 3 hari kerja.`;
 
     // ⚠️ IMPORTANT: Pesanan grosir uses ProdukEcom, but PengajuanStok needs ProdukGudang
     // For now, we'll use a workaround: fetch product details from GUDANG backend
@@ -180,19 +180,7 @@ export class AjukanGrosirKeGudangUseCase {
 
     const productDetails = await Promise.all(productDetailsPromises);
 
-    // Fetch customer coordinates for direct warehouse delivery
-    const userAddress = await this.prisma.alamatKonsumen.findFirst({
-      where: {
-        konsumenId: pesanan.konsumenId,
-        alamat: pesanan.alamatKirim,
-      },
-    });
-
     const isPesananGrosir = true;
-    const alamatKirim = pesanan.alamatKirim;
-    const lat = userAddress?.lat;
-    const lng = userAddress?.lng;
-    const konsumenId = pesanan.konsumenId;
 
     // 1. First, create the local stock request with warehouse product IDs
     const newRequest = await this.pengajuanStokRepo.create({
@@ -201,10 +189,6 @@ export class AjukanGrosirKeGudangUseCase {
         gudangId,
         catatan: catatanGrosir,
         isPesananGrosir,
-        alamatKirim,
-        lat,
-        lng,
-        konsumenId,
         items: {
           create: productDetails.map((item) => ({
             produkGudangId: item.produkGudangId,
@@ -233,10 +217,6 @@ export class AjukanGrosirKeGudangUseCase {
           tokoNama: toko.nama,
           catatan: catatanGrosir,
           isPesananGrosir,
-          alamatKirim,
-          lat,
-          lng,
-          konsumenId,
           items: productDetails,
           message: `Ada pengajuan stok baru [GROSIR] dari toko ${toko.nama}`,
         },

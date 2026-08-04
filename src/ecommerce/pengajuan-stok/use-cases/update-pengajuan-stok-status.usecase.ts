@@ -64,26 +64,30 @@ export class UpdatePengajuanStokStatusUseCase {
         `[UpdatePengajuanStokStatus] Processing receiving items for pengajuan ${pengajuanId}`,
       );
 
-      // Fetch store price configuration (fallback to 15%)
-      let marginDefault = 15.0;
-      const tokoConfig = await this.stokRepo.findPriceConfigByTokoId(
-        pengajuan.tokoId,
-      );
-      if (tokoConfig) {
-        marginDefault = tokoConfig.marginDefaultPersen;
+      if (!pengajuan.isPesananGrosir) {
+        // Fetch store price configuration (fallback to 15%)
+        let marginDefault = 15.0;
+        const tokoConfig = await this.stokRepo.findPriceConfigByTokoId(
+          pengajuan.tokoId,
+        );
+        if (tokoConfig) {
+          marginDefault = tokoConfig.marginDefaultPersen;
+        }
+
+        await this.processReceivingItems(
+          pengajuan,
+          data.itemUpdates,
+          marginDefault,
+          effectivePenggunaId,
+        );
+
+        await this.createFifoBatches(pengajuan, data.itemUpdates);
+      } else {
+        console.log(`[UpdatePengajuanStokStatus] Skipping receiving items for wholesale order pengajuan ${pengajuanId} (pass-through)`);
       }
 
-      await this.processReceivingItems(
-        pengajuan,
-        data.itemUpdates,
-        marginDefault,
-        effectivePenggunaId,
-      );
-
-      await this.createFifoBatches(pengajuan, data.itemUpdates);
-
       // After processing all items, auto-transition to SELESAI
-      // This ensures products are immediately available in the catalog
+      // This ensures products are immediately available in the catalog (or for B2B, allows seller to proceed)
       data.status = "SELESAI" as StatusPengajuanStok;
       console.log(
         `[UpdatePengajuanStokStatus] Auto-transitioning to SELESAI after processing items`,

@@ -135,11 +135,7 @@ export class CreatePesananGrosirUseCase {
         throw new BadRequestException("Tanggal permintaan kirim minimal H+2 dari hari ini");
       }
     } else {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const hPlus2 = new Date(today);
-      hPlus2.setDate(hPlus2.getDate() + 2);
-      jadwalKirim = hPlus2; // Estimasi default
+      jadwalKirim = null; // Akan ditentukan setelah pembayaran berhasil
     }
 
     // Create the order with status MENUNGGU_KONFIRMASI_SELLER

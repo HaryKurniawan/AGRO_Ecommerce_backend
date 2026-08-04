@@ -169,7 +169,7 @@ export class CreateOrderHelpersService {
     try {
       for (const itemPesanan of pesanan.item) {
         await this.profitReportService.createProfitTransaction({
-          id: itemPesanan.id,
+          id: itemPesanan.id_itemPesanan,
           pesananId: pesanan.id_pesanan,
           produkId: itemPesanan.produkId,
           jumlah: itemPesanan.jumlah,
@@ -221,7 +221,7 @@ export class CreateOrderHelpersService {
       (sum, o) => sum + (o.totalHarga || 0),
       0,
     );
-    const externalId = createdOrders.map((o) => o.id).join("-");
+    const externalId = createdOrders.map((o) => o.id_pesanan).join("-");
     const isQRIS = metodeBayar.toUpperCase() === "QRIS";
 
     let finalPaymentId: string;
