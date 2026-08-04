@@ -28,7 +28,7 @@ export class AdminFindAllOrdersUseCase {
                 select: {
                   nama: true,
                   gambarUrl: true,
-                  toko: { select: { nama: true, id: true } },
+                  toko: { select: { nama: true, id_toko: true } },
                 },
               },
             },

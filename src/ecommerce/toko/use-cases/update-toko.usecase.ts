@@ -13,7 +13,7 @@ export class UpdateStoreUseCase {
 
   async execute(id: string, penggunaId: string, dto: UpdateStoreDto) {
     const toko = (await this.storesRepo.findUnique({
-      where: { id },
+      where: { id_toko: id },
       include: { penjual: true },
     })) as any;
 
@@ -25,6 +25,6 @@ export class UpdateStoreUseCase {
       throw new ForbiddenException("Not authorized to edit this toko");
     }
 
-    return this.storesRepo.update({ where: { id }, data: dto });
+    return this.storesRepo.update({ where: { id_toko: id }, data: dto });
   }
 }

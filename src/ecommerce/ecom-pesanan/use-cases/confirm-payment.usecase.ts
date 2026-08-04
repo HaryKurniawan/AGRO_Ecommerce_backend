@@ -23,7 +23,7 @@ export class ConfirmPaymentUseCase {
   async execute(pesananId: string, penggunaId: string) {
     // 1. Fetch the order
     const pesanan = await this.ordersRepo.findUnique({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
     });
 
     if (!pesanan) {
@@ -46,7 +46,7 @@ export class ConfirmPaymentUseCase {
 
     // 4. Transition to DIPROSES
     const updated = await this.ordersRepo.update({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
       data: { status: "DIPROSES" },
       include: {
         toko: { select: { nama: true } },
@@ -87,7 +87,7 @@ export class ConfirmPaymentUseCase {
         try {
           await this.perTokoTelegramService.sendNewOrderNotif({
             tokoId: updated.tokoId!,
-            orderId: updated.id,
+            orderId: updated.id_pesanan,
             namaToko: updated.toko?.nama || "Toko",
             namaPembeli: updated.konsumen?.nama || "Pembeli",
             totalHarga: Number(updated.totalHarga || 0),
@@ -97,7 +97,7 @@ export class ConfirmPaymentUseCase {
           });
         } catch (error: any) {
           console.error(
-            `Gagal mengirim notifikasi Telegram pesanan ${updated.id}: ${error?.message || error}`
+            `Gagal mengirim notifikasi Telegram pesanan ${updated.id_pesanan}: ${error?.message || error}`
           );
         }
       })();

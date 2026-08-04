@@ -9,7 +9,7 @@ export class FindOneMasterProdukUseCase {
   async execute(idOrSlug: string) {
     // Try by ID first, then by slug
     let master = await this.masterRepo.findUnique({
-      where: { id: idOrSlug },
+      where: { id_masterProduk: idOrSlug },
       include: {
         kategori: true,
         mappingGudang: true,

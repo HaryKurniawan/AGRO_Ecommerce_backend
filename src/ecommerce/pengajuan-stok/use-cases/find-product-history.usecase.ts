@@ -23,23 +23,23 @@ export class FindProductHistoryUseCase {
       }
 
       const toko = await this.tokosRepo.findUnique({
-        where: { penjualId: profil.id },
+        where: { penjualId: profil.id_profilPenjual },
       });
 
       if (!toko) {
         console.warn(
-          `[FindProductHistoryUseCase] Toko tidak ditemukan untuk penjual ${profil.id}`,
+          `[FindProductHistoryUseCase] Toko tidak ditemukan untuk penjual ${profil.id_profilPenjual}`,
         );
         throw new BadRequestException("Toko tidak ditemukan");
       }
 
       console.log(
-        `[FindProductHistoryUseCase] Fetching pengajuan stok for toko ${toko.id}`,
+        `[FindProductHistoryUseCase] Fetching pengajuan stok for toko ${toko.id_toko}`,
       );
 
       // 2. Get all pengajuan stok with items, sorted by createdAt DESC
       const pengajuanList = await this.stokRepo.findMany({
-        where: { tokoId: toko.id },
+        where: { tokoId: toko.id_toko },
         include: {
           items: true,
         },
@@ -60,12 +60,12 @@ export class FindProductHistoryUseCase {
 
       for (const pengajuan of pengajuanList) {
         console.log(
-          `[FindProductHistoryUseCase] Processing pengajuan ${pengajuan.id} with ${pengajuan.items.length} items`,
+          `[FindProductHistoryUseCase] Processing pengajuan ${pengajuan.id_pengajuanStok} with ${pengajuan.items.length} items`,
         );
         for (const item of pengajuan.items) {
           allItems.push({
             ...item,
-            pengajuanId: pengajuan.id,
+            pengajuanId: pengajuan.id_pengajuanStok,
             pengajuanCreatedAt: pengajuan.createdAt,
             gudangId: pengajuan.gudangId,
             pengajuanStatus: pengajuan.status,

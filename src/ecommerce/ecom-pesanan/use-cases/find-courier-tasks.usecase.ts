@@ -66,7 +66,7 @@ export class FindCourierTasksUseCase {
         tokoId: pesanan?.item?.[0]?.produk?.tokoId,
         tokoNama: pesanan?.item?.[0]?.produk?.toko?.nama,
         customer: {
-          id: konsumen?.id,
+          id: konsumen?.id_pengguna,
           name: konsumen?.nama,
           email: konsumen?.email,
           phoneNumber: konsumen?.noTelepon,
@@ -85,7 +85,7 @@ export class FindCourierTasksUseCase {
           harga: i.harga,
         })),
         shipping: {
-          id: t.id,
+          id: t.id_pengirimanPesanan,
           status: t.status,
           kurirName: t.kurirNama,
           kurirPhone: t.kurirTelepon,

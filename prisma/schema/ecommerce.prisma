@@ -4,7 +4,8 @@
 // ─── Toko ───────────────────────────────────────────────────────────────────
 
 model Toko {
-  id                String     @id @default(uuid())
+  id_toko           String     @id @default(uuid())
+  kodeToko          String?    @unique
   penjualId         String     @unique
   nama              String
   slug              String     @unique
@@ -26,9 +27,8 @@ model Toko {
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
-  penjual             ProfilPenjual         @relation(fields: [penjualId], references: [id], onDelete: Cascade)
+  penjual             ProfilPenjual         @relation(fields: [penjualId], references: [id_profilPenjual], onDelete: Cascade)
   produk              ProdukEcom[]
-  inventaris          InventarisToko[]
   pengajuanStok       PengajuanStokToko[]
   courierStaffId      String?
   kurirStaffs         Pengguna[]            @relation("StoreCouriers")
@@ -54,11 +54,11 @@ enum StatusToko {
 // ─── Kategori ────────────────────────────────────────────────────────────────
 
 model KategoriToko {
-  id        String   @id @default(uuid())
-  nama      String   @unique
-  icon      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id_kategoriToko String   @id @default(uuid())
+  nama            String   @unique
+  icon            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   produk       ProdukEcom[]
   masterProduk MasterProduk[]
@@ -70,11 +70,10 @@ model KategoriToko {
 // ─── Produk ─────────────────────────────────────────────────────────────────
 
 model ProdukEcom {
-  id                String           @id @default(uuid())
+  id_produk         String           @id @default(uuid())
   tokoId            String
   kategoriId        String
   masterProdukId    String? // null jika produk mandiri (bukan dari gudang)
-  produkGudangId    String? // Reference ke ProdukGudang di DB Gudang
   nama              String // Nama asli dari Master (snapshot) atau nama produk mandiri
   namaEtalase       String? // Nama custom etalase (null = pakai nama master)
   deskripsi         String
@@ -83,6 +82,8 @@ model ProdukEcom {
   satuan            String
   beratGram         Int              @default(1000)
   stok              Int              @default(0)
+  stokFisikKg       Float            @default(0)
+  stokTersediaKg    Float            @default(0)
   gambarUrl         String?
   fotoLainnya       String[]         @default([])
   nutrisi           String?
@@ -96,14 +97,13 @@ model ProdukEcom {
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
-  toko                Toko                  @relation(fields: [tokoId], references: [id], onDelete: Cascade)
-  kategori            KategoriToko          @relation(fields: [kategoriId], references: [id])
-  masterProduk        MasterProduk?         @relation(fields: [masterProdukId], references: [id])
+  toko                Toko                  @relation(fields: [tokoId], references: [id_toko], onDelete: Cascade)
+  kategori            KategoriToko          @relation(fields: [kategoriId], references: [id_kategoriToko])
+  masterProduk        MasterProduk?         @relation(fields: [masterProdukId], references: [id_masterProduk])
   itemKeranjang       ItemKeranjangEcom[]
   itemPesanan         ItemPesananEcom[]
   stockHistory        RiwayatStokProduk[]
   ulasan              UlasanProdukEcom[]
-  inventarisToko      InventarisToko[]
   riwayatMargin       RiwayatMargin[]
   stokMasuk           StokMasukProduk[]
   transaksiKeuntungan TransaksiKeuntungan[]
@@ -121,7 +121,7 @@ model ProdukEcom {
 // ─── Master Produk (Dikelola Admin E-commerce) ─────────────────────────
 
 model MasterProduk {
-  id                String   @id @default(uuid())
+  id_masterProduk   String   @id @default(uuid())
   nama              String   @unique // "Jagung Frozen" — SATU-SATUNYA sumber kebenaran
   slug              String   @unique // "jagung-frozen"
   deskripsi         String // Deskripsi standar untuk semua seller
@@ -144,7 +144,7 @@ model MasterProduk {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  kategori      KategoriToko          @relation(fields: [kategoriId], references: [id])
+  kategori      KategoriToko          @relation(fields: [kategoriId], references: [id_kategoriToko])
   produkEcoms   ProdukEcom[] // Semua produk seller yang merujuk ke master ini
   mappingGudang MappingProdukGudang[] // Mapping ke produk gudang
 
@@ -155,14 +155,14 @@ model MasterProduk {
 // ─── Mapping Master Produk ↔ Produk Gudang ────────────────────────────
 
 model MappingProdukGudang {
-  id             String   @id @default(uuid())
-  masterProdukId String
-  produkGudangId String // Reference ke ProdukGudang di database GUDANG
-  gudangId       String // Reference ke Gudang di database GUDANG
-  gudangNama     String? // Snapshot nama gudang
-  createdAt      DateTime @default(now())
+  id_mappingProdukGudang String   @id @default(uuid())
+  masterProdukId         String
+  produkGudangId         String // Reference ke ProdukGudang di database GUDANG
+  gudangId               String // Reference ke Gudang di database GUDANG
+  gudangNama             String? // Snapshot nama gudang
+  createdAt              DateTime @default(now())
 
-  masterProduk MasterProduk @relation(fields: [masterProdukId], references: [id], onDelete: Cascade)
+  masterProduk MasterProduk @relation(fields: [masterProdukId], references: [id_masterProduk], onDelete: Cascade)
 
   @@unique([masterProdukId, produkGudangId])
   @@map("master_product_warehouse_mappings")
@@ -172,19 +172,19 @@ model MappingProdukGudang {
 // ─── Riwayat Stok Produk ───────────────────────────────────────────────────
 
 model RiwayatStokProduk {
-  id         String            @id @default(uuid())
-  produkId   String
-  penggunaId String
-  tipe       TipePerubahanStok
-  kuantitas  Int
-  stokAkhir  Int
-  catatan    String?
-  pesananId  String?
-  createdAt  DateTime          @default(now())
+  id_riwayatStokProduk String            @id @default(uuid())
+  produkId             String
+  penggunaId           String
+  tipe                 TipePerubahanStok
+  kuantitas            Int
+  stokAkhir            Int
+  catatan              String?
+  pesananId            String?
+  createdAt            DateTime          @default(now())
 
-  produk   ProdukEcom   @relation(fields: [produkId], references: [id], onDelete: Cascade)
-  pengguna Pengguna     @relation(fields: [penggunaId], references: [id])
-  pesanan  PesananEcom? @relation(fields: [pesananId], references: [id])
+  produk   ProdukEcom   @relation(fields: [produkId], references: [id_produk], onDelete: Cascade)
+  pengguna Pengguna     @relation(fields: [penggunaId], references: [id_pengguna])
+  pesanan  PesananEcom? @relation(fields: [pesananId], references: [id_pesanan])
 
   @@map("product_stock_history")
   @@schema("ecommerce")
@@ -210,12 +210,12 @@ enum StatusProdukEcom {
 // ─── Keranjang ────────────────────────────────────────────────────────────────────
 
 model KeranjangEcom {
-  id         String   @id @default(uuid())
-  konsumenId String   @unique
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id_keranjang String   @id @default(uuid())
+  konsumenId   String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  konsumen Pengguna            @relation(fields: [konsumenId], references: [id], onDelete: Cascade)
+  konsumen Pengguna            @relation(fields: [konsumenId], references: [id_pengguna], onDelete: Cascade)
   item     ItemKeranjangEcom[]
 
   @@map("ecom_carts")
@@ -223,16 +223,16 @@ model KeranjangEcom {
 }
 
 model ItemKeranjangEcom {
-  id              String   @id @default(uuid())
-  keranjangId     String
-  produkId        String
-  varianKemasanId String?
-  jumlah          Int      @default(1)
-  createdAt       DateTime @default(now())
+  id_itemKeranjang String   @id @default(uuid())
+  keranjangId      String
+  produkId         String
+  varianKemasanId  String?
+  jumlah           Int      @default(1)
+  createdAt        DateTime @default(now())
 
-  keranjang     KeranjangEcom  @relation(fields: [keranjangId], references: [id], onDelete: Cascade)
-  produk        ProdukEcom     @relation(fields: [produkId], references: [id])
-  varianKemasan VarianKemasan? @relation(fields: [varianKemasanId], references: [id], onDelete: SetNull)
+  keranjang     KeranjangEcom  @relation(fields: [keranjangId], references: [id_keranjang], onDelete: Cascade)
+  produk        ProdukEcom     @relation(fields: [produkId], references: [id_produk])
+  varianKemasan VarianKemasan? @relation(fields: [varianKemasanId], references: [id_varianKemasan], onDelete: SetNull)
 
   @@unique([keranjangId, produkId, varianKemasanId])
   @@map("ecom_cart_items")
@@ -242,16 +242,17 @@ model ItemKeranjangEcom {
 // ─── Pesanan ───────────────────────────────────────────────────────────────────
 
 model PesananEcom {
-  id                  String            @id @default(uuid())
+  id_pesanan          String            @id
   konsumenId          String
   totalHarga          Float
   ongkir              Float             @default(0)
+  ppnAmount           Float             @default(0)
   metodeBayar         String
   alamatKirim         String
   jadwalKirim         DateTime?
   isGrosir            Boolean           @default(false)
-  kemasanGrosir       Json?             // Packaging specs [{ukuranKg, jumlahBungkus}]
-  diskonGrosirPersen  Float?            // Diskon % yang diterapkan saat pesanan dibuat
+  kemasanGrosir       Json? // Packaging specs [{ukuranKg, jumlahBungkus}]
+  diskonGrosirPersen  Float? // Diskon % yang diterapkan saat pesanan dibuat
   status              StatusPesananEcom @default(MENUNGGU_BAYAR)
   diprosesOleh        String            @default("TOKO") // "TOKO" atau "GUDANG"
   gudangId            String?
@@ -266,12 +267,12 @@ model PesananEcom {
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
-  konsumen            Pengguna               @relation(fields: [konsumenId], references: [id])
+  konsumen            Pengguna               @relation(fields: [konsumenId], references: [id_pengguna])
   item                ItemPesananEcom[]
   pengiriman          PengirimanPesananEcom?
   ulasan              UlasanProdukEcom[]
   riwayatStok         RiwayatStokProduk[]
-  toko                Toko?                  @relation(fields: [tokoId], references: [id])
+  toko                Toko?                  @relation(fields: [tokoId], references: [id_toko])
   transaksiKeuntungan TransaksiKeuntungan[]
 
   @@index([konsumenId])
@@ -282,7 +283,7 @@ model PesananEcom {
 }
 
 model ItemPesananEcom {
-  id              String  @id @default(uuid())
+  id_itemPesanan  String  @id @default(uuid())
   pesananId       String
   produkId        String
   varianKemasanId String?
@@ -294,9 +295,9 @@ model ItemPesananEcom {
   ukuranCustomKg Float?
   totalKg        Float?
 
-  pesanan             PesananEcom          @relation(fields: [pesananId], references: [id], onDelete: Cascade)
-  produk              ProdukEcom           @relation(fields: [produkId], references: [id])
-  varianKemasan       VarianKemasan?       @relation(fields: [varianKemasanId], references: [id], onDelete: SetNull)
+  pesanan             PesananEcom          @relation(fields: [pesananId], references: [id_pesanan], onDelete: Cascade)
+  produk              ProdukEcom           @relation(fields: [produkId], references: [id_produk])
+  varianKemasan       VarianKemasan?       @relation(fields: [varianKemasanId], references: [id_varianKemasan], onDelete: SetNull)
   ulasan              UlasanProdukEcom?
   transaksiKeuntungan TransaksiKeuntungan?
 
@@ -321,23 +322,24 @@ enum StatusPesananEcom {
 // ─── Pengiriman Pesanan ──────────────────────────────────────────────────────────
 
 model PengirimanPesananEcom {
-  id                String           @id @default(uuid())
-  pesananId         String           @unique
-  kurirPenggunaId   String?
-  kurirNama         String?
-  kurirTelepon      String?
-  status            StatusPengiriman @default(PREPARING)
-  catatan           String?
-  trackingHistory   Json             @default("[]")
-  buktiKirimFoto    String[] // JSON array of photo URLs
-  buktiKirimCatatan String? // Delivery notes
-  buktiKirimWaktu   DateTime? // When proof was submitted
-  buktiKirimLat     Float? // GPS latitude
-  buktiKirimLng     Float? // GPS longitude
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  id_pengirimanPesanan String           @id @default(uuid())
+  nomorResi            String?          @unique
+  pesananId            String           @unique
+  kurirPenggunaId      String?
+  kurirNama            String?
+  kurirTelepon         String?
+  status               StatusPengiriman @default(PREPARING)
+  catatan              String?
+  trackingHistory      Json             @default("[]")
+  buktiKirimFoto       String[] // JSON array of photo URLs
+  buktiKirimCatatan    String? // Delivery notes
+  buktiKirimWaktu      DateTime? // When proof was submitted
+  buktiKirimLat        Float? // GPS latitude
+  buktiKirimLng        Float? // GPS longitude
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
-  pesanan PesananEcom @relation(fields: [pesananId], references: [id], onDelete: Cascade)
+  pesanan PesananEcom @relation(fields: [pesananId], references: [id_pesanan], onDelete: Cascade)
 
   @@map("ecom_order_shippings")
   @@schema("ecommerce")
@@ -357,24 +359,24 @@ enum StatusPengiriman {
 // ─── Alamat Konsumen ────────────────────────────────────────────────────────
 
 model AlamatKonsumen {
-  id         String   @id @default(uuid())
-  konsumenId String
-  label      String
-  penerima   String?
-  alamat     String
-  kota       String
-  provinsi   String
-  kecamatan  String?
-  kelurahan  String?
-  kodePos    String?
-  telepon    String?
-  isDefault  Boolean  @default(false)
-  lat        Float?
-  lng        Float?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id_alamatPembeli String   @id @default(uuid())
+  konsumenId       String
+  label            String
+  penerima         String?
+  alamat           String
+  kota             String
+  provinsi         String
+  kecamatan        String?
+  kelurahan        String?
+  kodePos          String?
+  telepon          String?
+  isDefault        Boolean  @default(false)
+  lat              Float?
+  lng              Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  konsumen Pengguna @relation(fields: [konsumenId], references: [id], onDelete: Cascade)
+  konsumen Pengguna @relation(fields: [konsumenId], references: [id_pengguna], onDelete: Cascade)
 
   @@map("customer_addresses")
   @@schema("ecommerce")
@@ -416,7 +418,7 @@ model Notifikasi {
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
-  pengguna Pengguna @relation(fields: [penggunaId], references: [id], onDelete: Cascade)
+  pengguna Pengguna @relation(fields: [penggunaId], references: [id_pengguna], onDelete: Cascade)
 
   @@index([penggunaId, isRead])
   @@index([penggunaId, createdAt])
@@ -448,28 +450,41 @@ model KonfigurasiPengiriman {
   @@schema("ecommerce")
 }
 
+// ─── Konfigurasi Pajak (PPN) ───────────────────────────────────────────────────
+
+model KonfigurasiPajak {
+  id        String   @id @default(uuid())
+  isAktif   Boolean  @default(false)
+  persenPPN Float    @default(11.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tax_configs")
+  @@schema("ecommerce")
+}
+
 // ─── Ulasan Produk ──────────────────────────────────────────────────────────
 
 model UlasanProdukEcom {
-  id             String               @id @default(uuid())
-  itemPesananId  String               @unique
-  produkId       String
-  pesananId      String
-  penggunaId     String
-  rating         Int
-  ulasan         String?              @db.Text
-  fotoUrl        String?
-  isHidden       Boolean              @default(false)
-  alasanLaporan  String?
-  dilaporkanPada DateTime?
-  statusLaporan  StatusLaporanUlasan?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  id_ulasanProduk String               @id @default(uuid())
+  itemPesananId   String               @unique
+  produkId        String
+  pesananId       String
+  penggunaId      String
+  rating          Int
+  ulasan          String?              @db.Text
+  fotoUrl         String?
+  isHidden        Boolean              @default(false)
+  alasanLaporan   String?
+  dilaporkanPada  DateTime?
+  statusLaporan   StatusLaporanUlasan?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
-  itemPesanan ItemPesananEcom @relation(fields: [itemPesananId], references: [id], onDelete: Cascade)
-  produk      ProdukEcom      @relation(fields: [produkId], references: [id], onDelete: Cascade)
-  pesanan     PesananEcom     @relation(fields: [pesananId], references: [id], onDelete: Cascade)
-  pengguna    Pengguna        @relation(fields: [penggunaId], references: [id], onDelete: Cascade)
+  itemPesanan ItemPesananEcom @relation(fields: [itemPesananId], references: [id_itemPesanan], onDelete: Cascade)
+  produk      ProdukEcom      @relation(fields: [produkId], references: [id_produk], onDelete: Cascade)
+  pesanan     PesananEcom     @relation(fields: [pesananId], references: [id_pesanan], onDelete: Cascade)
+  pengguna    Pengguna        @relation(fields: [penggunaId], references: [id_pengguna], onDelete: Cascade)
 
   @@map("ecom_product_reviews")
   @@schema("ecommerce")
@@ -485,25 +500,9 @@ enum StatusLaporanUlasan {
 
 // ─── Inventaris dan Stok Toko Baru ─────────────────────────────────────────
 
-model InventarisToko {
-  id             String   @id @default(uuid())
-  tokoId         String
-  produkId       String
-  stokFisikKg    Float    @default(0)
-  stokTersediaKg Float    @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  toko   Toko       @relation(fields: [tokoId], references: [id], onDelete: Cascade)
-  produk ProdukEcom @relation(fields: [produkId], references: [id], onDelete: Cascade)
-
-  @@unique([tokoId, produkId])
-  @@map("ecom_store_inventory")
-  @@schema("ecommerce")
-}
-
 model PengajuanStokToko {
-  id                     String              @id @default(uuid())
+  id_pengajuanStok       String              @id @default(uuid())
+  nomorPengajuan         String?             @unique
   tokoId                 String
   gudangId               String
   status                 StatusPengajuanStok @default(DIAJUKAN)
@@ -520,7 +519,7 @@ model PengajuanStokToko {
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @updatedAt
 
-  toko      Toko                @relation(fields: [tokoId], references: [id])
+  toko      Toko                @relation(fields: [tokoId], references: [id_toko])
   items     ItemPengajuanStok[]
   stokMasuk StokMasukProduk[]
 
@@ -529,7 +528,7 @@ model PengajuanStokToko {
 }
 
 model ItemPengajuanStok {
-  id               String  @id @default(uuid())
+  id_itemPengajuan String  @id @default(uuid())
   pengajuanId      String
   produkGudangId   String // Reference ke ProdukGudang.id (di database GUDANG)
   namaProduk       String // Snapshot nama produk saat pengajuan
@@ -538,10 +537,8 @@ model ItemPengajuanStok {
   hargaGudang      Float // Snapshot harga gudang saat pengajuan
   jumlahPermintaan Float
   jumlahDisetujui  Float?
-  ukuranKemasanKg  Float?
-  jumlahKemasan    Int?
 
-  pengajuan     PengajuanStokToko          @relation(fields: [pengajuanId], references: [id], onDelete: Cascade)
+  pengajuan     PengajuanStokToko          @relation(fields: [pengajuanId], references: [id_pengajuanStok], onDelete: Cascade)
   kemasanDetail ItemPengajuanStokKemasan[]
   // Note: Tidak ada foreign key ke ProdukGudang karena beda database
   // produkGudangId disimpan sebagai string reference saja
@@ -559,12 +556,12 @@ enum ModePengemasan {
 }
 
 model ItemPengajuanStokKemasan {
-  id                  String @id @default(uuid())
-  itemPengajuanStokId String
-  ukuranKg            Float // 1.0 atau 2.5
-  jumlahKemasan       Int
+  id_itemPengajuanKemasan String @id @default(uuid())
+  itemPengajuanStokId     String
+  ukuranKg                Float // 1.0 atau 2.5
+  jumlahKemasan           Int
 
-  itemPengajuanStok ItemPengajuanStok @relation(fields: [itemPengajuanStokId], references: [id], onDelete: Cascade)
+  itemPengajuanStok ItemPengajuanStok @relation(fields: [itemPengajuanStokId], references: [id_itemPengajuan], onDelete: Cascade)
 
   @@unique([itemPengajuanStokId, ukuranKg])
   @@map("ecom_store_stock_request_item_packages")
@@ -576,12 +573,12 @@ model KonfigurasiHargaToko {
   tokoId              String   @unique
   marginDefaultPersen Float    @default(15.0) // Default margin 15% untuk seller
   marginMaxPersen     Float    @default(30.0) // Batas maksimum margin default 30% diatur oleh admin
-  diskonGrosirPersen  Float    @default(0.0)  // Diskon % untuk pembelian grosiran
-  ongkosKirimGrosir   Float    @default(0.0)  // Ongkos kirim rata (flat rate) untuk pembelian grosir
+  diskonGrosirPersen  Float    @default(0.0) // Diskon % untuk pembelian grosiran
+  ongkosKirimGrosir   Float    @default(0.0) // Ongkos kirim rata (flat rate) untuk pembelian grosir
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  toko Toko @relation(fields: [tokoId], references: [id], onDelete: Cascade)
+  toko Toko @relation(fields: [tokoId], references: [id_toko], onDelete: Cascade)
 
   @@map("ecom_store_price_configs")
   @@schema("ecommerce")
@@ -613,8 +610,8 @@ model RiwayatMargin {
   keterangan      String?
   createdAt       DateTime @default(now())
 
-  toko   Toko        @relation(fields: [tokoId], references: [id], onDelete: Cascade)
-  produk ProdukEcom? @relation(fields: [produkId], references: [id], onDelete: Cascade)
+  toko   Toko        @relation(fields: [tokoId], references: [id_toko], onDelete: Cascade)
+  produk ProdukEcom? @relation(fields: [produkId], references: [id_produk], onDelete: Cascade)
 
   @@map("ecom_margin_history")
   @@schema("ecommerce")
@@ -625,7 +622,7 @@ model RiwayatMargin {
 // ─── Stok Masuk Produk (FIFO Batches) ─────────────────────────────────
 
 model StokMasukProduk {
-  id                   String   @id @default(uuid())
+  id_stokMasuk         String    @id @default(uuid())
   produkId             String
   pengajuanStokId      String
   itemPengajuanStokId  String
@@ -641,10 +638,10 @@ model StokMasukProduk {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  produk              ProdukEcom                 @relation(fields: [produkId], references: [id], onDelete: Cascade)
-  pengajuanStok       PengajuanStokToko          @relation(fields: [pengajuanStokId], references: [id])
-  itemPengajuanStok   ItemPengajuanStok          @relation(fields: [itemPengajuanStokId], references: [id])
-  varianKemasan       VarianKemasan?             @relation(fields: [varianKemasanId], references: [id], onDelete: SetNull)
+  produk              ProdukEcom                 @relation(fields: [produkId], references: [id_produk], onDelete: Cascade)
+  pengajuanStok       PengajuanStokToko          @relation(fields: [pengajuanStokId], references: [id_pengajuanStok])
+  itemPengajuanStok   ItemPengajuanStok          @relation(fields: [itemPengajuanStokId], references: [id_itemPengajuan])
+  varianKemasan       VarianKemasan?             @relation(fields: [varianKemasanId], references: [id_varianKemasan], onDelete: SetNull)
   transaksiKeuntungan TransaksiKeuntunganBatch[]
 
   @@index([produkId, jumlahTersisa])
@@ -657,24 +654,24 @@ model StokMasukProduk {
 // ─── Transaksi Keuntungan (Profit Transactions) ─────────────────────────
 
 model TransaksiKeuntungan {
-  id               String            @id @default(uuid())
-  itemPesananId    String            @unique
-  pesananId        String
-  produkId         String
-  tokoId           String
-  jumlahTerjual    Float // Jumlah yang terjual (kg)
-  hargaJual        Float // Harga jual per kg
-  hargaBeli        Float // Harga beli rata-rata (FIFO weighted)
-  totalHargaBeli   Float // Total harga beli (FIFO calculation)
-  statusPesanan    StatusPesananEcom
-  tanggalTransaksi DateTime          @default(now())
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id_transaksiKeuntungan String            @id @default(uuid())
+  itemPesananId          String            @unique
+  pesananId              String
+  produkId               String
+  tokoId                 String
+  jumlahTerjual          Float // Jumlah yang terjual (kg)
+  hargaJual              Float // Harga jual per kg
+  hargaBeli              Float // Harga beli rata-rata (FIFO weighted)
+  totalHargaBeli         Float // Total harga beli (FIFO calculation)
+  statusPesanan          StatusPesananEcom
+  tanggalTransaksi       DateTime          @default(now())
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 
-  itemPesanan  ItemPesananEcom            @relation(fields: [itemPesananId], references: [id], onDelete: Cascade)
-  pesanan      PesananEcom                @relation(fields: [pesananId], references: [id])
-  produk       ProdukEcom                 @relation(fields: [produkId], references: [id])
-  toko         Toko                       @relation(fields: [tokoId], references: [id])
+  itemPesanan  ItemPesananEcom            @relation(fields: [itemPesananId], references: [id_itemPesanan], onDelete: Cascade)
+  pesanan      PesananEcom                @relation(fields: [pesananId], references: [id_pesanan])
+  produk       ProdukEcom                 @relation(fields: [produkId], references: [id_produk])
+  toko         Toko                       @relation(fields: [tokoId], references: [id_toko])
   batchDetails TransaksiKeuntunganBatch[]
 
   @@index([produkId, tanggalTransaksi])
@@ -687,15 +684,15 @@ model TransaksiKeuntungan {
 // ─── Detail Batch per Transaksi Keuntungan ─────────────────────────────
 
 model TransaksiKeuntunganBatch {
-  id                    String   @id @default(uuid())
-  transaksiKeuntunganId String
-  stokMasukId           String
-  jumlahDigunakan       Float // Berapa kg dari batch ini yang digunakan
-  hargaBeli             Float // Harga beli dari batch ini
-  createdAt             DateTime @default(now())
+  id_transaksiKeuntunganBatch String   @id @default(uuid())
+  transaksiKeuntunganId       String
+  stokMasukId                 String
+  jumlahDigunakan             Float // Berapa kg dari batch ini yang digunakan
+  hargaBeli                   Float // Harga beli dari batch ini
+  createdAt                   DateTime @default(now())
 
-  transaksiKeuntungan TransaksiKeuntungan @relation(fields: [transaksiKeuntunganId], references: [id], onDelete: Cascade)
-  stokMasuk           StokMasukProduk     @relation(fields: [stokMasukId], references: [id])
+  transaksiKeuntungan TransaksiKeuntungan @relation(fields: [transaksiKeuntunganId], references: [id_transaksiKeuntungan], onDelete: Cascade)
+  stokMasuk           StokMasukProduk     @relation(fields: [stokMasukId], references: [id_stokMasuk])
 
   @@index([transaksiKeuntunganId])
   @@map("ecom_profit_transaction_batches")
@@ -703,17 +700,17 @@ model TransaksiKeuntunganBatch {
 }
 
 model VarianKemasan {
-  id            String   @id @default(uuid())
-  produkId      String
-  ukuranKg      Float // 1.0, 2.5, 10.0
-  biayaTambahan Float    @default(0) // Biaya ekstra jika milih kemasan eceran/kecil
-  stokKemasan   Int      @default(0)
-  sku           String? // SKU unik per varian
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id_varianKemasan String   @id @default(uuid())
+  produkId         String
+  ukuranKg         Float // 1.0, 2.5, 10.0
+  biayaTambahan    Float    @default(0) // Biaya ekstra jika milih kemasan eceran/kecil
+  stokKemasan      Int      @default(0)
+  sku              String? // SKU unik per varian
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  produk        ProdukEcom          @relation(fields: [produkId], references: [id], onDelete: Cascade)
+  produk        ProdukEcom          @relation(fields: [produkId], references: [id_produk], onDelete: Cascade)
   itemKeranjang ItemKeranjangEcom[]
   itemPesanan   ItemPesananEcom[]
   stokMasuk     StokMasukProduk[]
@@ -744,7 +741,7 @@ model BatchPengiriman {
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
-  toko  Toko                  @relation(fields: [tokoId], references: [id], onDelete: Cascade)
+  toko  Toko                  @relation(fields: [tokoId], references: [id_toko], onDelete: Cascade)
   items ItemBatchPengiriman[]
 
   @@index([tokoId, tanggal])
@@ -815,5 +812,6 @@ model BannerPromo {
 enum TipePengiriman {
   DEFAULT
   CUSTOM
+
   @@schema("ecommerce")
 }

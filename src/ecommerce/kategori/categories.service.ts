@@ -13,14 +13,15 @@ export class CategoriesService {
       orderBy: { nama: "asc" },
     });
 
-    return categories;
+    return categories.map((c: any) => ({ ...c, id: c.id_kategoriToko }));
   }
 
   async findOne(id: string) {
     const kategori = await this.prisma.kategoriToko.findUnique({
-      where: { id },
+      where: { id_kategoriToko: id },
     });
     if (!kategori) throw new NotFoundException("Category not found");
+    (kategori as any).id = kategori.id_kategoriToko;
     return kategori;
   }
 
@@ -32,14 +33,14 @@ export class CategoriesService {
 
   async update(id: string, data: { nama?: string; icon?: string }) {
     await this.findOne(id);
-    const result = await this.prisma.kategoriToko.update({ where: { id }, data });
+    const result = await this.prisma.kategoriToko.update({ where: { id_kategoriToko: id }, data });
 
     return result;
   }
 
   async remove(id: string) {
     await this.findOne(id);
-    const result = await this.prisma.kategoriToko.delete({ where: { id } });
+    const result = await this.prisma.kategoriToko.delete({ where: { id_kategoriToko: id } });
 
     return result;
   }

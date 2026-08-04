@@ -14,7 +14,7 @@ export class SellerGetAllReviewsUseCase {
     }
 
     const toko = await this.prisma.toko.findUnique({
-      where: { penjualId: profilPenjual.id },
+      where: { penjualId: profilPenjual.id_profilPenjual },
     });
     if (!toko) {
       throw new NotFoundException("Toko Anda tidak ditemukan");
@@ -25,11 +25,11 @@ export class SellerGetAllReviewsUseCase {
     const [ulasan, total] = await Promise.all([
       this.prisma.ulasanProdukEcom.findMany({
         where: {
-          produk: { tokoId: toko.id },
+          produk: { tokoId: toko.id_toko },
         },
         include: {
-          pengguna: { select: { id: true, nama: true } },
-          produk: { select: { id: true, nama: true, gambarUrl: true } },
+          pengguna: { select: { id_pengguna: true, nama: true } },
+          produk: { select: { id_produk: true, nama: true, gambarUrl: true } },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -37,7 +37,7 @@ export class SellerGetAllReviewsUseCase {
       }),
       this.prisma.ulasanProdukEcom.count({
         where: {
-          produk: { tokoId: toko.id },
+          produk: { tokoId: toko.id_toko },
         },
       }),
     ]);

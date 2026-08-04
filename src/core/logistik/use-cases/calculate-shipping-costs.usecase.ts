@@ -50,7 +50,7 @@ export class CalculateShippingCostsUseCase {
   async execute(dto: CalculateShippingDto): Promise<ShippingResult[]> {
     // Get customer address
     const alamat = await this.prisma.alamatKonsumen.findUnique({
-      where: { id: dto.customerAddressId },
+      where: { id_alamatPembeli: dto.customerAddressId },
     });
 
     if (!alamat) {
@@ -112,7 +112,7 @@ export class CalculateShippingCostsUseCase {
 
         if (!isAllowedArea) {
           return {
-            tokoId: toko.id,
+            tokoId: toko.id_toko,
             namaToko: toko.nama,
             distanceKm: 0,
             totalWeightKg: beratKg,
@@ -149,7 +149,7 @@ export class CalculateShippingCostsUseCase {
 
 
         return {
-          tokoId: toko.id,
+          tokoId: toko.id_toko,
           namaToko: toko.nama,
           distanceKm: parseFloat(distanceKm.toFixed(2)),
           totalWeightKg: beratKg,

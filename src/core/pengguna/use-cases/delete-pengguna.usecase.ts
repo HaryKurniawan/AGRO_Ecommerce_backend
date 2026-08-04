@@ -12,6 +12,6 @@ export class DeleteUserUseCase {
 
   async execute(id: string) {
     await this.findUserByIdUC.execute(id);
-    return this.usersRepo.delete({ where: { id } });
+    return this.usersRepo.delete({ where: { id_pengguna: id } });
   }
 }

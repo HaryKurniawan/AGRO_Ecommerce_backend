@@ -13,10 +13,10 @@ export class UpdateUserUseCase {
   async execute(id: string, dto: any) {
     await this.findUserByIdUC.execute(id);
     return this.usersRepo.update({
-      where: { id },
+      where: { id_pengguna: id },
       data: dto,
       select: {
-        id: true,
+        id_pengguna: true,
         email: true,
         nama: true,
         peran: true,

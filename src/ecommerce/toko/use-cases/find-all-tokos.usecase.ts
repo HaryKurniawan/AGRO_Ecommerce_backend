@@ -43,7 +43,7 @@ export class FindAllStoresUseCase {
             penjual: { select: { namaToko: true, penggunaId: true } },
             produk: {
               select: {
-                id: true,
+                id_produk: true,
                 ulasan: {
                   where: { isHidden: false },
                   select: { rating: true },
@@ -80,6 +80,7 @@ export class FindAllStoresUseCase {
 
       return {
         ...rest,
+        id: rest.id_toko,
         totalProduk,
         rating,
         totalPenjualan,

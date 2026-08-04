@@ -85,7 +85,7 @@ export class PaymentWebhookController {
     // external_id berupa gabungan order ID dipisahkan "-"
     const orderIds = externalId.split("-");
     const pesananList = await this.prisma.pesananEcom.findMany({
-      where: { id: { in: orderIds } },
+      where: { id_pesanan: { in: orderIds } },
     });
 
     if (!pesananList || pesananList.length === 0) {
@@ -102,7 +102,7 @@ export class PaymentWebhookController {
           pesanan.status === "DIBATALKAN")
       ) {
         const updated = await this.prisma.pesananEcom.update({
-          where: { id: pesanan.id },
+          where: { id_pesanan: pesanan.id_pesanan },
           data: { status: "DIPROSES" },
           include: {
             toko: { select: { nama: true } },
@@ -122,24 +122,24 @@ export class PaymentWebhookController {
         });
 
         this.logger.log(
-          `Pesanan ${pesanan.id} status updated to DIPROSES via Xendit webhook (Event: PAID)`,
+          `Pesanan ${pesanan.id_pesanan} status updated to DIPROSES via Xendit webhook (Event: PAID)`,
         );
 
         // Update profit transaction status
         try {
           await this.profitReportService.updateProfitTransactionStatus(
-            pesanan.id,
+            pesanan.id_pesanan,
             "DIPROSES",
           );
         } catch (err) {
           this.logger.error(
-            `Failed to update profit transaction for ${pesanan.id}:`,
+            `Failed to update profit transaction for ${pesanan.id_pesanan}:`,
             err,
           );
         }
 
         this.eventEmitter.emit("order.status.updated", {
-          orderId: pesanan.id,
+          orderId: pesanan.id_pesanan,
           status: updated.status,
           tokoId: pesanan.tokoId,
         });
@@ -155,7 +155,7 @@ export class PaymentWebhookController {
             try {
               await this.perTokoTelegramService.sendNewOrderNotif({
                 tokoId: updated.tokoId!,
-                orderId: updated.id,
+                orderId: updated.id_pesanan,
                 namaToko: updated.toko?.nama || "Toko",
                 namaPembeli: updated.konsumen?.nama || "Pembeli",
                 totalHarga: Number(updated.totalHarga || 0),
@@ -164,7 +164,7 @@ export class PaymentWebhookController {
                 detailProdukText,
               });
             } catch (error: any) {
-              this.logger.error(`Gagal mengirim notifikasi Telegram pesanan ${updated.id}: ${error?.message || error}`);
+              this.logger.error(`Gagal mengirim notifikasi Telegram pesanan ${updated.id_pesanan}: ${error?.message || error}`);
             }
           })();
         }
@@ -202,7 +202,7 @@ export class PaymentWebhookController {
             }
 
             const catatan =
-              `Pesanan B2B (${updated.id}): Kirim langsung ke alamat konsumen ${gpsLink}. Catatan: ${realCatatan}`.trim();
+              `Pesanan B2B (${updated.id_pesanan}): Kirim langsung ke alamat konsumen ${gpsLink}. Catatan: ${realCatatan}`.trim();
 
             await this.prisma.pengajuanStokToko.create({
               data: {
@@ -231,11 +231,11 @@ export class PaymentWebhookController {
               },
             });
             this.logger.log(
-              `Auto-generated PengajuanStokToko B2B for order ${updated.id}`,
+              `Auto-generated PengajuanStokToko B2B for order ${updated.id_pesanan}`,
             );
           } catch (err) {
             this.logger.error(
-              `Failed to auto-generate B2B PengajuanStokToko for ${updated.id}:`,
+              `Failed to auto-generate B2B PengajuanStokToko for ${updated.id_pesanan}:`,
               err,
             );
           }
@@ -244,27 +244,27 @@ export class PaymentWebhookController {
       // EVENT: EXPIRED
       else if (event === "EXPIRED" && pesanan.status === "MENUNGGU_BAYAR") {
         const updated = await this.prisma.pesananEcom.update({
-          where: { id: pesanan.id },
+          where: { id_pesanan: pesanan.id_pesanan },
           data: { status: "DIBATALKAN" },
         });
 
         this.logger.log(
-          `Pesanan ${pesanan.id} status updated to DIBATALKAN via Xendit webhook (Event: EXPIRED)`,
+          `Pesanan ${pesanan.id_pesanan} status updated to DIBATALKAN via Xendit webhook (Event: EXPIRED)`,
         );
 
         // Batalkan profit transaction
         try {
-          await this.profitReportService.handleOrderCancellation(pesanan.id);
+          await this.profitReportService.handleOrderCancellation(pesanan.id_pesanan);
         } catch (err) {
           this.logger.error(
-            `Failed to handle profit transaction cancellation for ${pesanan.id}:`,
+            `Failed to handle profit transaction cancellation for ${pesanan.id_pesanan}:`,
             err,
           );
         }
 
         // Emit SSE event ke frontend
         this.eventEmitter.emit("order.status.updated", {
-          orderId: pesanan.id,
+          orderId: pesanan.id_pesanan,
           status: updated.status,
           tokoId: pesanan.tokoId,
         });
@@ -338,7 +338,7 @@ export class PaymentWebhookController {
 
     const orderIds = orderId.split("-");
     const pesananList = await this.prisma.pesananEcom.findMany({
-      where: { id: { in: orderIds } },
+      where: { id_pesanan: { in: orderIds } },
     });
 
     if (!pesananList || pesananList.length === 0) {
@@ -352,11 +352,11 @@ export class PaymentWebhookController {
           pesanan.status === "DIBATALKAN")
       ) {
         const updated = await this.prisma.pesananEcom.update({
-          where: { id: pesanan.id },
+          where: { id_pesanan: pesanan.id_pesanan },
           data: { status: "DIPROSES" },
         });
         this.eventEmitter.emit("order.status.updated", {
-          orderId: pesanan.id,
+          orderId: pesanan.id_pesanan,
           status: updated.status,
           tokoId: pesanan.tokoId,
         });
@@ -365,11 +365,11 @@ export class PaymentWebhookController {
         pesanan.status === "MENUNGGU_BAYAR"
       ) {
         const updated = await this.prisma.pesananEcom.update({
-          where: { id: pesanan.id },
+          where: { id_pesanan: pesanan.id_pesanan },
           data: { status: "DIBATALKAN" },
         });
         this.eventEmitter.emit("order.status.updated", {
-          orderId: pesanan.id,
+          orderId: pesanan.id_pesanan,
           status: updated.status,
           tokoId: pesanan.tokoId,
         });

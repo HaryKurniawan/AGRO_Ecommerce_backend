@@ -18,7 +18,7 @@ export class ToggleSellerStatusUseCase {
 
   async execute(sellerId: string, aktif: boolean, adminId?: string) {
     const pengguna: any = await this.usersRepo.findUnique({
-      where: { id: sellerId },
+      where: { id_pengguna: sellerId },
       include: { profilPenjual: { include: { toko: true } } },
     });
 
@@ -33,8 +33,7 @@ export class ToggleSellerStatusUseCase {
     }
 
     // Update status aktif di pengguna
-    await this.prisma.pengguna.update({
-      where: { id: sellerId },
+    await this.prisma.pengguna.update({ where: { id_pengguna: sellerId },
       data: { aktif },
     });
 
@@ -49,8 +48,7 @@ export class ToggleSellerStatusUseCase {
 
       // Update toko status juga
       if (pengguna.profilPenjual.toko) {
-        await this.prisma.toko.update({
-          where: { id: pengguna.profilPenjual.toko.id },
+        await this.prisma.toko.update({ where: { id_toko: pengguna.profilPenjual.toko.id_toko },
           data: { status: aktif ? "ACTIVE" : "SUSPENDED" },
         });
       }

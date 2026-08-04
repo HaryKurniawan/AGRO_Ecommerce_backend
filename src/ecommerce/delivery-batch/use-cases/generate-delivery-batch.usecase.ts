@@ -68,7 +68,7 @@ export class GenerateDeliveryBatchUseCase {
     const pesananBelumDiBatch: typeof pesananSiapKirim = [];
     for (const pesanan of pesananSiapKirim) {
       const alreadyInBatch = await this.prisma.itemBatchPengiriman.findUnique({
-        where: { pesananId: pesanan.id },
+        where: { pesananId: pesanan.id_pesanan },
       });
       if (!alreadyInBatch) {
         pesananBelumDiBatch.push(pesanan);
@@ -83,8 +83,7 @@ export class GenerateDeliveryBatchUseCase {
     }
 
     // Get toko coordinates for route optimization
-    const toko = await this.prisma.toko.findUnique({
-      where: { id: tokoId },
+    const toko = await this.prisma.toko.findUnique({ where: { id_toko: tokoId },
       select: { lat: true, lng: true, nama: true },
     });
 
@@ -92,7 +91,7 @@ export class GenerateDeliveryBatchUseCase {
     const batchItems = pesananBelumDiBatch.map((pesanan) => {
       const defaultAddr = pesanan.konsumen?.addresses?.[0];
       return {
-        pesananId: pesanan.id,
+        pesananId: pesanan.id_pesanan,
         lat: defaultAddr?.lat ?? null,
         lng: defaultAddr?.lng ?? null,
         alamat: pesanan.alamatKirim,
@@ -158,8 +157,7 @@ export class GenerateDeliveryBatchUseCase {
     // Auto-assign courier from toko
     const kurirPenggunaId = toko
       ? (
-          await this.prisma.toko.findUnique({
-            where: { id: tokoId },
+          await this.prisma.toko.findUnique({ where: { id_toko: tokoId },
             select: { courierStaffId: true },
           })
         )?.courierStaffId

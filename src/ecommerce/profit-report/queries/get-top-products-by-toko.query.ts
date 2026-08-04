@@ -72,12 +72,12 @@ export class GetTopProductsByTokoQuery {
     // Get product names
     const produkIds = sortedProducts.map((r) => r.produkId);
     const products = await this.prisma.produkEcom.findMany({
-      where: { id: { in: produkIds } },
-      select: { id: true, nama: true, namaEtalase: true },
+      where: { id_produk: { in: produkIds } },
+      select: { id_produk: true, nama: true, namaEtalase: true },
     });
 
     return sortedProducts.map((r) => {
-      const product = products.find((p) => p.id === r.produkId);
+      const product = products.find((p) => p.id_produk === r.produkId);
       return {
         produkId: r.produkId,
         namaProduk: product?.namaEtalase || product?.nama || "Unknown Product",

@@ -53,7 +53,7 @@ export class TokosRepository {
 
   async findUserById(id: string) {
     return this.prisma.pengguna.findUnique({
-      where: { id },
+      where: { id_pengguna: id },
     });
   }
 }

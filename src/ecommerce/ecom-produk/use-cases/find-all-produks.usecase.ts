@@ -59,9 +59,9 @@ export class FindAllProductsUseCase {
         take: limit,
         orderBy,
         include: {
-          toko: { select: { id: true, nama: true, kabupaten: true } },
-          kategori: { select: { id: true, nama: true, icon: true } },
-          masterProduk: { select: { id: true, nama: true } },
+          toko: { select: { id_toko: true, nama: true, kabupaten: true } },
+          kategori: { select: { id_kategoriToko: true, nama: true, icon: true } },
+          masterProduk: { select: { id_masterProduk: true, nama: true } },
           varian: {
             where: { isActive: true },
             orderBy: { ukuranKg: "asc" },
@@ -86,9 +86,14 @@ export class FindAllProductsUseCase {
 
       const terjual = p.itemPesanan.reduce((acc: number, curr: any) => acc + curr.jumlah, 0);
 
-      const { ulasan, itemPesanan, ...rest } = p;
+      const varian = p.varian ? p.varian.map((v: any) => ({ ...v, id: v.id_varianKemasan })) : [];
+
+      const { ulasan, itemPesanan, id_produk, ...rest } = p;
       return {
         ...rest,
+        varian,
+        id_produk,
+        id: id_produk,
         rating: avgRating,
         terjual,
       };

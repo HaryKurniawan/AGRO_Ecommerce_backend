@@ -5,6 +5,7 @@ import { FindOrderByIdUseCase } from "./find-pesanan-by-id.usecase";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { IdGenerator } from "../../utils/id-generator.util";
 
 @Injectable()
 export class InitShippingUseCase {
@@ -44,7 +45,7 @@ export class InitShippingUseCase {
     if (!finalCourierPenggunaId) {
       // Find the toko from the first item in the order
       const orderWithItems = await this.prisma.pesananEcom.findUnique({
-        where: { id: pesananId },
+        where: { id_pesanan: pesananId },
         include: {
           item: {
             include: {
@@ -62,16 +63,19 @@ export class InitShippingUseCase {
       if (firstToko?.courierStaffId) {
         finalCourierPenggunaId = firstToko.courierStaffId;
         // Fetch courier profile
-        const courierProfile = await this.prisma.pengguna.findUnique({
-          where: { id: firstToko.courierStaffId },
+        const courierProfile = await this.prisma.pengguna.findUnique({ where: { id_pengguna: firstToko.courierStaffId },
         });
         finalCourierName = courierProfile?.nama || "Kurir Toko";
         finalCourierPhone = courierProfile?.noTelepon || undefined;
       }
     }
 
+    const totalShipping = await this.prisma.pengirimanPesananEcom.count({});
+    const nomorResi = IdGenerator.generateTrackingNumber(totalShipping + 1);
+
     const pengiriman = await this.ordersRepo.createShipping({
       data: {
+        nomorResi,
         pesananId,
         kurirPenggunaId: finalCourierPenggunaId,
         kurirNama: finalCourierName,
@@ -91,7 +95,7 @@ export class InitShippingUseCase {
 
     // Update pesanan status to DIPROSES (re-confirming stage)
     await this.ordersRepo.update({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
       data: { status: "DIPROSES" },
     });
 

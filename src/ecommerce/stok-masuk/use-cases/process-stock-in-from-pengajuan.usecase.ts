@@ -14,7 +14,7 @@ export class ProcessStockInFromPengajuanUseCase {
   async execute(
     pengajuanStokId: string,
     items: Array<{
-      id: string;
+      id_itemPengajuan: string;
       produkEcomId: string;
       jumlahDisetujui: number;
       hargaGudang: number;
@@ -37,10 +37,10 @@ export class ProcessStockInFromPengajuanUseCase {
         const stokMasuk = await this.createStokMasukUC.execute({
           produkId: item.produkEcomId,
           pengajuanStokId,
-          itemPengajuanStokId: item.id,
+          itemPengajuanStokId: item.id_itemPengajuan,
           jumlahMasuk: totalKg,
           hargaBeli: item.hargaGudang,
-          varianKemasanId: varian?.id,
+          varianKemasanId: varian?.id_varianKemasan,
           ukuranKemasanKg: ukuranKg,
           jumlahKemasanMasuk: item.jumlahDisetujui,
           jumlahKemasanTersisa: item.jumlahDisetujui,

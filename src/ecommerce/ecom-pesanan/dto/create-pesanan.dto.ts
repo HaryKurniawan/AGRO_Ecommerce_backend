@@ -82,6 +82,11 @@ export class CreateOrderDto {
   @IsOptional()
   jadwalKirim?: string;
 
+  @ApiPropertyOptional({ description: "Nomor HP (digunakan untuk e-wallet OVO)" })
+  @IsString()
+  @IsOptional()
+  mobileNumber?: string;
+
   @ApiProperty({
     type: [StoreOrderDto],
     description: "Daftar pesanan berdasarkan Toko",

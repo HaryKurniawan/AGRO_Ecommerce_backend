@@ -30,8 +30,7 @@ export class ForgotPasswordUseCase {
     const kadaluarsaTokenReset = new Date();
     kadaluarsaTokenReset.setHours(kadaluarsaTokenReset.getHours() + 1);
 
-    await this.prisma.pengguna.update({
-      where: { id: pengguna.id },
+    await this.prisma.pengguna.update({ where: { id_pengguna: pengguna.id_pengguna },
       data: {
         tokenResetKataSandi: resetToken,
         kadaluarsaTokenReset,

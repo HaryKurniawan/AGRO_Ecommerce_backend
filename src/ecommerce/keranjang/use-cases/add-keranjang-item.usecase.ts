@@ -18,7 +18,7 @@ export class AddCartItemUseCase {
   ) {
     // Verify product exists and has stock
     const produk = await this.prisma.produkEcom.findUnique({
-      where: { id: produkId },
+      where: { id_produk: produkId },
     });
     if (!produk || produk.stok < jumlah) {
       throw new BadRequestException("Produk tidak ditemukan atau stok tidak mencukupi");
@@ -31,14 +31,13 @@ export class AddCartItemUseCase {
     );
 
     if (existingItem) {
-      await this.prisma.itemKeranjangEcom.update({
-        where: { id: existingItem.id },
+      await this.prisma.itemKeranjangEcom.update({ where: { id_itemKeranjang: existingItem.id_itemKeranjang },
         data: { jumlah: existingItem.jumlah + jumlah },
       });
     } else {
       await this.prisma.itemKeranjangEcom.create({
         data: {
-          keranjangId: keranjang.id,
+          keranjangId: keranjang.id_keranjang,
           produkId,
           varianKemasanId: varianKemasanId || null,
           jumlah,

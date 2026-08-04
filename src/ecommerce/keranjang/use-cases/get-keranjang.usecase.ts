@@ -8,8 +8,7 @@ export class GetCartUseCase {
   ) {}
 
   async execute(penggunaId: string) {
-    const pengguna = await this.prisma.pengguna.findUnique({
-      where: { id: penggunaId },
+    const pengguna = await this.prisma.pengguna.findUnique({ where: { id_pengguna: penggunaId },
     });
     if (!pengguna) {
       throw new NotFoundException("Pengguna not found. Cannot access keranjang.");
@@ -22,7 +21,7 @@ export class GetCartUseCase {
           include: {
             produk: {
               include: {
-                toko: { select: { id: true, nama: true } },
+                toko: { select: { id_toko: true, nama: true } },
                 varian: { where: { isActive: true } },
               },
             },
@@ -40,7 +39,7 @@ export class GetCartUseCase {
             include: {
               produk: {
                 include: {
-                  toko: { select: { id: true, nama: true } },
+                  toko: { select: { id_toko: true, nama: true } },
                   varian: { where: { isActive: true } },
                 },
               },

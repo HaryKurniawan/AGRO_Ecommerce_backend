@@ -15,8 +15,7 @@ export class UpdateTokoMarginConfigUseCase {
     diubahOlehId: string;
     diubahOlehPeran: "SELLER" | "ADMIN";
   }) {
-    const store = await this.prisma.toko.findUnique({
-      where: { id: data.tokoId },
+    const store = await this.prisma.toko.findUnique({ where: { id_toko: data.tokoId },
     });
     if (!store) {
       throw new BadRequestException("Toko tidak ditemukan");
@@ -104,7 +103,7 @@ export class UpdateTokoMarginConfigUseCase {
       if (hpp > 0) {
         const newPrice = hpp * (1 + Number(activeDefaultMargin) / 100);
         await this.prisma.produkEcom.update({
-          where: { id: p.id },
+          where: { id_produk: p.id_produk },
           data: { harga: newPrice },
         });
       }

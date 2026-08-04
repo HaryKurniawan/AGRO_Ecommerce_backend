@@ -16,7 +16,7 @@ export class LogisticsRepository {
   }
 
   async findTokoById(id: string) {
-    return this.prisma.toko.findUnique({ where: { id } });
+    return this.prisma.toko.findUnique({ where: { id_toko: id } });
   }
 
   async updateShippingConfig(

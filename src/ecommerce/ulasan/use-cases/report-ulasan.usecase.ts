@@ -16,7 +16,7 @@ export class ReportReviewUseCase {
       throw new BadRequestException("Alasan laporan minimal 10 karakter");
 
     const ulasan = await this.prisma.ulasanProdukEcom.findUnique({
-      where: { id: reviewId },
+      where: { id_ulasanProduk: reviewId },
       include: {
         produk: {
           include: {
@@ -45,7 +45,7 @@ export class ReportReviewUseCase {
       );
 
     return this.prisma.ulasanProdukEcom.update({
-      where: { id: reviewId },
+      where: { id_ulasanProduk: reviewId },
       data: {
         alasanLaporan: alasan.trim(),
         dilaporkanPada: new Date(),

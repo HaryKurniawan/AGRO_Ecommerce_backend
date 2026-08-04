@@ -11,8 +11,7 @@ export class RemoveCartItemUseCase {
   ) {}
 
   async execute(penggunaId: string, itemId: string) {
-    const item = await this.prisma.itemKeranjangEcom.findUnique({
-      where: { id: itemId },
+    const item = await this.prisma.itemKeranjangEcom.findUnique({ where: { id_itemKeranjang: itemId },
       include: { keranjang: true },
     });
     
@@ -20,7 +19,7 @@ export class RemoveCartItemUseCase {
       throw new NotFoundException("Cart item not found");
     }
 
-    await this.prisma.itemKeranjangEcom.delete({ where: { id: itemId } });
+    await this.prisma.itemKeranjangEcom.delete({ where: { id_itemKeranjang: itemId } });
     
     return { success: true, message: "Item removed from cart" };
   }

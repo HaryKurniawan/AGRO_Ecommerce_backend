@@ -36,7 +36,7 @@ export class UpdateStockUseCase {
     }
 
     const updated = await this.productsRepo.update({
-      where: { id },
+      where: { id_produk: id },
       data: {
         stok: stokAkhir,
         status:
@@ -47,7 +47,7 @@ export class UpdateStockUseCase {
               : (produk.status as any),
       },
       include: {
-        kategori: { select: { id: true, nama: true } },
+        kategori: { select: { id_kategoriToko: true, nama: true } },
       },
     });
 

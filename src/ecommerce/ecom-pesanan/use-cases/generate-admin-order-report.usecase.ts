@@ -114,7 +114,7 @@ export class GenerateAdminOrderReportUseCase {
 
       const rowData = [
         index + 1,
-        order.id,
+        order.id_pesanan,
         (order as any).toko?.nama || "-",
         new Date(order.createdAt).toLocaleString("id-ID"),
         order.status,

@@ -14,7 +14,7 @@ export class MapGudangMasterProdukUseCase {
   async execute(masterId: string, dto: CreateMappingDto) {
     // 1. Verify master product exists
     const master = await this.masterRepo.findUnique({
-      where: { id: masterId },
+      where: { id_masterProduk: masterId },
     });
 
     if (!master) {

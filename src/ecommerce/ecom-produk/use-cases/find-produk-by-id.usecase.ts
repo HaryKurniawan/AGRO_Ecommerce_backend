@@ -14,11 +14,11 @@ export class FindProductByIdUseCase {
   async execute(id: string) {
 
     const produk = await this.productsRepo.findUnique({
-      where: { id },
+      where: { id_produk: id },
       include: {
         toko: {
           select: {
-            id: true,
+            id_toko: true,
             nama: true,
             slug: true,
             kabupaten: true,
@@ -42,7 +42,7 @@ export class FindProductByIdUseCase {
 
     // Explicitly ensure tokoId is present (it should be, but let's be safe)
     if (!produk.tokoId && produk.toko) {
-      (produk as any).tokoId = produk.toko.id;
+      (produk as any).tokoId = produk.toko.id_toko;
     }
 
     // Calculate product rating and terjual
@@ -59,19 +59,23 @@ export class FindProductByIdUseCase {
 
     (produk as any).rating = productRatingAgg._avg.rating ?? 0;
     (produk as any).terjual = productTerjualAgg._sum.jumlah ?? 0;
+    (produk as any).id = produk.id_produk;
+    if (produk.varian) {
+      (produk as any).varian = produk.varian.map((v: any) => ({ ...v, id: v.id_varianKemasan }));
+    }
 
     // Calculate store stats if toko is loaded
     if (produk.toko) {
       const [totalProduk, totalPenjualanAgg, ratingAgg] = await Promise.all([
         this.prisma.produkEcom.count({
-          where: { tokoId: produk.toko.id },
+          where: { tokoId: produk.toko.id_toko },
         }),
         this.prisma.itemPesananEcom.aggregate({
-          where: { produk: { tokoId: produk.toko.id } },
+          where: { produk: { tokoId: produk.toko.id_toko } },
           _sum: { jumlah: true },
         }),
         this.prisma.ulasanProdukEcom.aggregate({
-          where: { produk: { tokoId: produk.toko.id }, isHidden: false },
+          where: { produk: { tokoId: produk.toko.id_toko }, isHidden: false },
           _avg: { rating: true },
         }),
       ]);

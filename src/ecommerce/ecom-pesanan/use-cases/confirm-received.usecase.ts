@@ -28,7 +28,7 @@ export class ConfirmReceivedUseCase {
     }
 
     return this.ordersRepo.update({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
       data: { status: "SELESAI" },
     });
   }

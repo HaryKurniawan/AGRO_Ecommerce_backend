@@ -35,8 +35,7 @@ export class VerifyEmailUseCase {
     }
 
     // Update pengguna: tandai sudah terverifikasi
-    await this.prisma.pengguna.update({
-      where: { id: pengguna.id },
+    await this.prisma.pengguna.update({ where: { id_pengguna: pengguna.id_pengguna },
       data: {
         emailTerverifikasiPada: new Date(),
         // Set legacy fields to null just in case
@@ -51,7 +50,7 @@ export class VerifyEmailUseCase {
     if (pengguna.peran === "PENJUAL" && pengguna.profilPenjual) {
       try {
         await this.prisma.profilPenjual.update({
-          where: { penggunaId: pengguna.id },
+          where: { penggunaId: pengguna.id_pengguna },
           data: {
             status: "DISETUJUI",
             terverifikasiPada: new Date(),
@@ -60,8 +59,7 @@ export class VerifyEmailUseCase {
 
         // Update status toko juga jika ada
         if (pengguna.profilPenjual.toko) {
-          await this.prisma.toko.update({
-            where: { id: pengguna.profilPenjual.toko.id },
+          await this.prisma.toko.update({ where: { id_toko: pengguna.profilPenjual.toko.id_toko },
             data: { status: "ACTIVE" },
           });
         }
@@ -91,7 +89,7 @@ export class VerifyEmailUseCase {
 
     // Buat accessToken agar pengguna langsung bisa login
     const accessToken = this.jwtService.sign({
-      sub: pengguna.id,
+      sub: pengguna.id_pengguna,
       email: pengguna.email,
       peran: pengguna.peran,
     });
@@ -100,7 +98,7 @@ export class VerifyEmailUseCase {
       message: "Email berhasil diverifikasi!",
       accessToken,
       pengguna: {
-        id: pengguna.id,
+        id: pengguna.id_pengguna,
         email: pengguna.email,
         nama: pengguna.nama,
         peran: pengguna.peran,

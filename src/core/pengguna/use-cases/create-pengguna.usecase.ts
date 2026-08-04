@@ -43,7 +43,7 @@ export class CreateUserUseCase {
         kadaluarsaTokenEmail: verifyExpiry,
       },
       select: {
-        id: true,
+        id_pengguna: true,
         email: true,
         nama: true,
         peran: true,

@@ -94,7 +94,7 @@ export class ChatRepository {
 
   async findUserById(id: string, select?: Prisma.PenggunaSelect) {
     return this.prisma.pengguna.findUnique({
-      where: { id },
+      where: { id_pengguna: id },
       select,
     });
   }
@@ -108,13 +108,12 @@ export class ChatRepository {
       where: {
         peran: { in: ["ADMIN_CS", "SUPER_ADMIN"] },
       },
-      select: { id: true, nama: true, email: true },
+      select: { id_pengguna: true, nama: true, email: true },
     });
   }
 
   async findStoreById(id: string, select?: Prisma.TokoSelect) {
-    return this.prisma.toko.findUnique({
-      where: { id },
+    return this.prisma.toko.findUnique({ where: { id_toko: id },
       select,
     });
   }
@@ -124,8 +123,7 @@ export class ChatRepository {
   }
 
   async findStoreWithOwner(tokoId: string) {
-    return this.prisma.toko.findUnique({
-      where: { id: tokoId },
+    return this.prisma.toko.findUnique({ where: { id_toko: tokoId },
       include: {
         penjual: {
           select: { penggunaId: true },

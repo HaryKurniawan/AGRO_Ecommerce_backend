@@ -367,8 +367,7 @@ export class PerTokoTelegramService implements OnModuleInit {
       metodeBayar,
     } = params;
 
-    const toko = await this.prisma.toko.findUnique({
-      where: { id: tokoId },
+    const toko = await this.prisma.toko.findUnique({ where: { id_toko: tokoId },
       select: { telegramBotToken: true, telegramChatId: true },
     });
 

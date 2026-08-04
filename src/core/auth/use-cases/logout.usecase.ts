@@ -13,8 +13,7 @@ export class LogoutUseCase {
     penggunaId: string,
     reqInfo?: { ipAddress?: string; userAgent?: string },
   ) {
-    const pengguna = await this.prisma.pengguna.findUnique({
-      where: { id: penggunaId },
+    const pengguna = await this.prisma.pengguna.findUnique({ where: { id_pengguna: penggunaId },
       include: { profilPenjual: true },
     });
     if (pengguna) {

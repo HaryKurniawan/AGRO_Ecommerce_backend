@@ -34,7 +34,7 @@ export class GetProductReviewsUseCase {
     const [ulasan, total] = await Promise.all([
       this.prisma.ulasanProdukEcom.findMany({
         where: queryWhere,
-        include: { pengguna: { select: { id: true, nama: true } } },
+        include: { pengguna: { select: { id_pengguna: true, nama: true } } },
         orderBy: queryOrderBy,
         skip,
         take: limit,

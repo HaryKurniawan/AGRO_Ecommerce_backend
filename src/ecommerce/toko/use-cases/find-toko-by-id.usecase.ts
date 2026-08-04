@@ -8,13 +8,13 @@ export class FindStoreByIdUseCase {
 
   async execute(id: string) {
     const toko = await this.storesRepo.findUnique({
-      where: { id },
+      where: { id_toko: id },
       include: {
         produk: {
           where: { status: "ACTIVE" },
           take: 20,
           include: {
-            kategori: { select: { id: true, nama: true } },
+            kategori: { select: { id_kategoriToko: true, nama: true } },
           },
         },
         penjual: {
@@ -30,9 +30,10 @@ export class FindStoreByIdUseCase {
     // Map fields for frontend compatibility
     return {
       ...toko,
+      id: toko.id_toko,
       foto: toko.fotoUrl,
       banner: toko.bannerUrl,
-      courierStaff: toko.penjual?.kurir ? { name: toko.penjual.kurir.nama } : undefined,
+      courierStaff: (toko as any).penjual?.kurir ? { name: (toko as any).penjual.kurir.nama } : undefined,
     };
   }
 }

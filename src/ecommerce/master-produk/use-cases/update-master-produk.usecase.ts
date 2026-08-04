@@ -13,7 +13,7 @@ export class UpdateMasterProdukUseCase {
 
   async execute(id: string, dto: UpdateMasterProdukDto) {
     const existing = await this.masterRepo.findUnique({
-      where: { id },
+      where: { id_masterProduk: id },
     });
 
     if (!existing) {
@@ -34,7 +34,7 @@ export class UpdateMasterProdukUseCase {
         where: { slug },
       });
 
-      if (collision && collision.id !== id) {
+      if (collision && collision.id_masterProduk !== id) {
         throw new BadRequestException(
           "Master produk dengan nama tersebut sudah ada.",
         );
@@ -44,7 +44,7 @@ export class UpdateMasterProdukUseCase {
         where: { nama: dto.nama },
       });
 
-      if (collisionName && collisionName.id !== id) {
+      if (collisionName && collisionName.id_masterProduk !== id) {
         throw new BadRequestException(
           "Master produk dengan nama tersebut sudah ada.",
         );
@@ -57,7 +57,7 @@ export class UpdateMasterProdukUseCase {
     }
 
     return this.masterRepo.update({
-      where: { id },
+      where: { id_masterProduk: id },
       data: updateData,
       include: {
         kategori: true,

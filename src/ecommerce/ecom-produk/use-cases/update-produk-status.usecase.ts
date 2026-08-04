@@ -17,11 +17,11 @@ export class UpdateProductStatusUseCase {
   ) {
     await this.findProductByIdUC.execute(id);
     const result = await this.productsRepo.update({
-      where: { id },
+      where: { id_produk: id },
       data: { status },
       include: {
-        kategori: { select: { id: true, nama: true } },
-        toko: { select: { id: true, nama: true } },
+        kategori: { select: { id_kategoriToko: true, nama: true } },
+        toko: { select: { id_toko: true, nama: true } },
       },
     });
 

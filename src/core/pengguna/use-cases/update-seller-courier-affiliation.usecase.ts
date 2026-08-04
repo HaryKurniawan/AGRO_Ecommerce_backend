@@ -29,8 +29,7 @@ export class UpdateSellerCourierAffiliationUseCase {
     } = data;
 
     // Verify if store exists
-    const store = await this.prisma.toko.findUnique({
-      where: { id: tokoId },
+    const store = await this.prisma.toko.findUnique({ where: { id_toko: tokoId },
       include: { kurirStaffs: true },
     });
     if (!store) {
@@ -44,7 +43,7 @@ export class UpdateSellerCourierAffiliationUseCase {
 
       // Check if courier exists and is indeed a courier
       const courier = await this.usersRepo.findUnique({
-        where: { id: courierUserId },
+        where: { id_pengguna: courierUserId },
       });
       if (!courier || courier.peran !== "KURIR") {
         throw new BadRequestException(
@@ -54,14 +53,13 @@ export class UpdateSellerCourierAffiliationUseCase {
 
       // Assign courier to store
       await this.usersRepo.update({
-        where: { id: courierUserId },
+        where: { id_pengguna: courierUserId },
         data: { kurirTokoId: tokoId },
       });
 
       // Update store's primary courier if it was empty
       if (!store.courierStaffId) {
-        await this.prisma.toko.update({
-          where: { id: tokoId },
+        await this.prisma.toko.update({ where: { id_toko: tokoId },
           data: { courierStaffId: courierUserId },
         });
       }
@@ -97,7 +95,7 @@ export class UpdateSellerCourierAffiliationUseCase {
       // Determine which courier to remove. If none specified, remove the one that matches store.courierStaffId
       let targetCourierId = courierUserId;
       if (!targetCourierId) {
-        targetCourierId = store.courierStaffId || currentCouriers[0]?.id;
+        targetCourierId = store.courierStaffId || currentCouriers[0]?.id_pengguna;
       }
 
       if (!targetCourierId) {
@@ -107,25 +105,23 @@ export class UpdateSellerCourierAffiliationUseCase {
       }
 
       // Find the courier's information before unlinking for the log description
-      const targetCourier = await this.prisma.pengguna.findUnique({
-        where: { id: targetCourierId },
+      const targetCourier = await this.prisma.pengguna.findUnique({ where: { id_pengguna: targetCourierId },
       });
 
       // Unlink courier
       await this.usersRepo.update({
-        where: { id: targetCourierId },
+        where: { id_pengguna: targetCourierId },
         data: { kurirTokoId: null },
       });
 
       // If we removed the primary courierStaffId, reassign it to another remaining courier
       if (store.courierStaffId === targetCourierId) {
         const remainingCourier = currentCouriers.find(
-          (c) => c.id !== targetCourierId,
+          (c) => c.id_pengguna !== targetCourierId,
         );
-        await this.prisma.toko.update({
-          where: { id: tokoId },
+        await this.prisma.toko.update({ where: { id_toko: tokoId },
           data: {
-            courierStaffId: remainingCourier ? remainingCourier.id : null,
+            courierStaffId: remainingCourier ? remainingCourier.id_pengguna : null,
           },
         });
       }
@@ -176,9 +172,8 @@ export class UpdateSellerCourierAffiliationUseCase {
 
       // If store had no primary courier, assign this new one
       if (!store.courierStaffId) {
-        await this.prisma.toko.update({
-          where: { id: tokoId },
-          data: { courierStaffId: newCourier.id },
+        await this.prisma.toko.update({ where: { id_toko: tokoId },
+          data: { courierStaffId: newCourier.id_pengguna },
         });
       }
 
@@ -188,14 +183,14 @@ export class UpdateSellerCourierAffiliationUseCase {
         kategori: "MANAJEMEN_AKUN",
         aksi: "BUAT_AKUN_KURIR",
         deskripsi: `Admin membuat akun Kurir baru ${newCourier.nama} (${newCourier.email}) dan diafiliasikan ke Toko ${store.nama}`,
-        metadata: { tokoId, courierUserId: newCourier.id },
+        metadata: { tokoId, courierUserId: newCourier.id_pengguna },
       });
 
       return {
         statusCode: 201,
         message: "Kurir baru berhasil dibuat dan diafiliasikan ke toko.",
         data: {
-          id: newCourier.id,
+          id_pengguna: newCourier.id_pengguna,
           nama: newCourier.nama,
           email: newCourier.email,
         },

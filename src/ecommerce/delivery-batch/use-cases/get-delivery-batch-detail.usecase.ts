@@ -25,7 +25,7 @@ export class GetDeliveryBatchDetailUseCase {
     const itemsWithPesanan = await Promise.all(
       batch.items.map(async (item) => {
         const pesanan = await this.prisma.pesananEcom.findUnique({
-          where: { id: item.pesananId },
+          where: { id_pesanan: item.pesananId },
           include: {
             konsumen: true,
             item: {

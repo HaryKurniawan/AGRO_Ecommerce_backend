@@ -14,7 +14,7 @@ export class GetNearestStoreUseCase {
         lng: { not: null },
       },
       select: {
-        id: true,
+        id_toko: true,
         nama: true,
         alamat: true,
         lat: true,
@@ -53,7 +53,7 @@ export class GetNearestStoreUseCase {
     }
 
     return {
-      toko: nearest,
+      toko: { ...nearest, id: nearest.id_toko },
       distanceKm: Number(minDistance.toFixed(2)),
     };
   }

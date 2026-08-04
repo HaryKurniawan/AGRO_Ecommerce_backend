@@ -16,7 +16,7 @@ export class UpdateProfileStatusUseCase {
 
   async execute(id: string, peran: string, status: any) {
     const pengguna: any = await this.usersRepo.findUnique({
-      where: { id },
+      where: { id_pengguna: id },
       include: {
         profilPenjual: true,
       },

@@ -8,12 +8,12 @@ export class FindOrderByIdUseCase {
 
   async execute(id: string) {
     const pesanan = await this.ordersRepo.findUnique({
-      where: { id },
+      where: { id_pesanan: id },
       include: {
         item: {
           include: {
             produk: {
-              include: { toko: { select: { id: true, nama: true } } },
+              include: { toko: { select: { id_toko: true, nama: true } } },
             },
           },
         },
@@ -37,7 +37,7 @@ export class FindOrderByIdUseCase {
       const expiry = new Date(pesanan.createdAt).getTime() + 1 * 60 * 60 * 1000;
       if (Date.now() > expiry) {
         await this.ordersRepo.update({
-          where: { id: pesanan.id },
+          where: { id_pesanan: pesanan.id_pesanan },
           data: { status: "DIBATALKAN", catatan: "Dibatalkan otomatis karena batas waktu pembayaran habis" },
         });
         pesanan.status = "DIBATALKAN" as any;

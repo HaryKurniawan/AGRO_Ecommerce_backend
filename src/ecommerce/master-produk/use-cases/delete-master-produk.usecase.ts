@@ -12,9 +12,9 @@ export class DeleteMasterProdukUseCase {
 
   async execute(id: string) {
     const existing = await this.masterRepo.findUnique({
-      where: { id },
+      where: { id_masterProduk: id },
       include: {
-        produkEcoms: { select: { id: true } },
+        produkEcoms: { select: { id_produk: true } },
       },
     });
 
@@ -29,7 +29,7 @@ export class DeleteMasterProdukUseCase {
     }
 
     return this.masterRepo.delete({
-      where: { id },
+      where: { id_masterProduk: id },
     });
   }
 }

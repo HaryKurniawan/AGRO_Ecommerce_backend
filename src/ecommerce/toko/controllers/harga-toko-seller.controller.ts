@@ -41,7 +41,7 @@ export class HargaTokoSellerController {
       throw new BadRequestException("Pengguna bukan penjual");
     }
     const store = await this.prisma.toko.findUnique({
-      where: { penjualId: profile.id },
+      where: { penjualId: profile.id_profilPenjual },
     });
     if (!store) {
       throw new BadRequestException("Toko tidak ditemukan");
@@ -54,7 +54,7 @@ export class HargaTokoSellerController {
   @ApiOperation({ summary: "Get current store B2B pricing config" })
   async getConfig(@CurrentUser("sub") penggunaId: string) {
     const store = await this.getStoreByUserId(penggunaId);
-    return this.getConfigUC.execute(store.id);
+    return this.getConfigUC.execute(store.id_toko);
   }
 
   // 2. Update default margin config
@@ -66,7 +66,7 @@ export class HargaTokoSellerController {
   ) {
     const store = await this.getStoreByUserId(penggunaId);
     return this.updateConfigUC.execute({
-      tokoId: store.id,
+      tokoId: store.id_toko,
       marginDefaultPersen: body.marginDefaultPersen,
       diubahOlehId: penggunaId,
       diubahOlehPeran: "SELLER",
@@ -87,7 +87,7 @@ export class HargaTokoSellerController {
   ) {
     const store = await this.getStoreByUserId(penggunaId);
     return this.overrideHargaUC.execute({
-      tokoId: store.id,
+      tokoId: store.id_toko,
       produkId,
       marginPersen: body.marginPersen,
       hargaJual: body.hargaJual,
@@ -103,7 +103,7 @@ export class HargaTokoSellerController {
   })
   async getSummary(@CurrentUser("sub") penggunaId: string) {
     const store = await this.getStoreByUserId(penggunaId);
-    return this.getSummaryUC.execute(store.id);
+    return this.getSummaryUC.execute(store.id_toko);
   }
 
   // 9. Get margin history for seller
@@ -111,6 +111,6 @@ export class HargaTokoSellerController {
   @ApiOperation({ summary: "Get margin change history for seller store" })
   async getRiwayat(@CurrentUser("sub") penggunaId: string) {
     const store = await this.getStoreByUserId(penggunaId);
-    return this.getHistoryUC.execute(store.id);
+    return this.getHistoryUC.execute(store.id_toko);
   }
 }

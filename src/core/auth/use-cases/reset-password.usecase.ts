@@ -26,8 +26,7 @@ export class ResetPasswordUseCase {
 
     const hashedPassword = await hashPassword(newPassword);
 
-    await this.prisma.pengguna.update({
-      where: { id: pengguna.id },
+    await this.prisma.pengguna.update({ where: { id_pengguna: pengguna.id_pengguna },
       data: {
         kataSandi: hashedPassword,
         // Set null for legacy fields just in case

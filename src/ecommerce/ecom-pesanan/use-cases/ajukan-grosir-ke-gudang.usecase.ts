@@ -29,7 +29,7 @@ export class AjukanGrosirKeGudangUseCase {
     payload: { gudangId: string },
   ) {
     const pesanan = await this.ordersRepo.findUnique({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
       include: { item: { include: { produk: true } } },
     });
 
@@ -59,7 +59,7 @@ export class AjukanGrosirKeGudangUseCase {
     }
 
     const toko = await this.tokosRepo.findUnique({
-      where: { penjualId: profil.id },
+      where: { penjualId: profil.id_profilPenjual },
     });
 
     if (!toko) {
@@ -75,7 +75,7 @@ export class AjukanGrosirKeGudangUseCase {
     const catatanGrosirPattern = `Pesanan ID: ${pesananId}`;
     const existingRequest = await this.pengajuanStokRepo.findFirst({
       where: {
-        tokoId: toko.id,
+        tokoId: toko.id_toko,
         gudangId,
         catatan: {
           contains: catatanGrosirPattern,
@@ -106,7 +106,7 @@ export class AjukanGrosirKeGudangUseCase {
     let productDetailsPromises;
     try {
       const response = await fetch(
-        `${gudangApiUrl}/api/produk/affiliate?gudangId=${gudangId}&tokoId=${toko.id}`,
+        `${gudangApiUrl}/api/produk/affiliate?gudangId=${gudangId}&tokoId=${toko.id_toko}`,
       );
 
       if (!response.ok) {
@@ -197,7 +197,7 @@ export class AjukanGrosirKeGudangUseCase {
     // 1. First, create the local stock request with warehouse product IDs
     const newRequest = await this.pengajuanStokRepo.create({
       data: {
-        tokoId: toko.id,
+        tokoId: toko.id_toko,
         gudangId,
         catatan: catatanGrosir,
         isPesananGrosir,
@@ -228,8 +228,8 @@ export class AjukanGrosirKeGudangUseCase {
         url: triggerUrl,
         payload: {
           gudangId,
-          pengajuanId: newRequest.id,
-          tokoId: toko.id,
+          pengajuanId: newRequest.id_pengajuanStok,
+          tokoId: toko.id_toko,
           tokoNama: toko.nama,
           catatan: catatanGrosir,
           isPesananGrosir,

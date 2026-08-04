@@ -1,10 +1,12 @@
 import { Injectable, BadRequestException, Logger } from "@nestjs/common";
+import { randomUUID } from "crypto";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { CalculateShippingCostsUseCase } from "../../../core/logistik/use-cases/calculate-shipping-costs.usecase";
 import { NotificationsService } from "../../../core/notifikasi/notifikasis.service";
 import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
 import { CreateOrderHelpersService } from "./create-pesanan-helpers.service";
+import { IdGenerator } from "../../utils/id-generator.util";
 
 import type { CreateOrderInput } from "./create-pesanan.types";
 export { CreateOrderInput } from "./create-pesanan.types";
@@ -34,8 +36,7 @@ export class CreateOrderUseCase {
       throw new BadRequestException("Pesanan tidak boleh kosong");
     }
 
-    const pengguna = await this.prisma.pengguna.findUnique({
-      where: { id: penggunaId },
+    const pengguna = await this.prisma.pengguna.findUnique({ where: { id_pengguna: penggunaId },
       select: { noTeleponTerverifikasiPada: true, peran: true }
     });
 
@@ -45,9 +46,12 @@ export class CreateOrderUseCase {
     }
 
 
+    const ppnConfig = await this.prisma.konfigurasiPajak.findFirst();
+    const persenPPN = ppnConfig?.isAktif ? (ppnConfig.persenPPN ?? 0) : 0;
+
     // ── 1. Validasi alamat pengiriman ──────────────────────
     const customerAddress = await this.prisma.alamatKonsumen.findUnique({
-      where: { id: data.alamatKirim },
+      where: { id_alamatPembeli: data.alamatKirim },
     });
     if (!customerAddress) {
       throw new BadRequestException("Alamat pengiriman tidak ditemukan");
@@ -60,6 +64,8 @@ export class CreateOrderUseCase {
       customerAddressId: data.alamatKirim,
       toko: data.pesanan.map((p) => ({ tokoId: p.tokoId, totalWeightGram: 1000 })),
     });
+
+    let currentOrderCount = await this.prisma.pesananEcom.count({});
 
     // ── 3. Proses tiap toko ────────────────────────────────
     for (const storeOrder of data.pesanan) {
@@ -74,8 +80,7 @@ export class CreateOrderUseCase {
       });
       const shipping = shippingResults.find((s) => s.tokoId === storeOrder.tokoId);
       if (!shipping) {
-        const storeInfo = await this.prisma.toko.findUnique({
-          where: { id: storeOrder.tokoId },
+        const storeInfo = await this.prisma.toko.findUnique({ where: { id_toko: storeOrder.tokoId },
           select: { nama: true, kabupaten: true }
         });
         const storeName = storeInfo?.nama || storeOrder.tokoId;
@@ -84,8 +89,7 @@ export class CreateOrderUseCase {
         );
       }
       if (!shipping.isAvailable) {
-        const storeInfo = await this.prisma.toko.findUnique({
-          where: { id: storeOrder.tokoId },
+        const storeInfo = await this.prisma.toko.findUnique({ where: { id_toko: storeOrder.tokoId },
           select: { nama: true, kabupaten: true }
         });
         const storeName = storeInfo?.nama || storeOrder.tokoId;
@@ -126,12 +130,23 @@ export class CreateOrderUseCase {
         0,
       );
 
+      const ppnAmount = totalHargaItems * (persenPPN / 100);
+
+      currentOrderCount++;
+      const storeInfo2 = await this.prisma.toko.findUnique({
+        where: { id_toko: storeOrder.tokoId },
+        select: { kodeToko: true }
+      });
+      const nomorInvoice = randomUUID();
+
       // 3e. Buat PesananEcom di DB
       const pesanan = await this.ordersRepo.create({
         data: {
+          id_pesanan: nomorInvoice,
           konsumenId: penggunaId,
-          totalHarga: totalHargaItems + (storeOrder.ongkir || 0),
+          totalHarga: totalHargaItems + (storeOrder.ongkir || 0) + ppnAmount,
           ongkir: storeOrder.ongkir || 0,
+          ppnAmount,
           metodeBayar: data.metodeBayar,
           alamatKirim,
           jadwalKirim: data.jadwalKirim ? new Date(data.jadwalKirim) : undefined,
@@ -160,15 +175,15 @@ export class CreateOrderUseCase {
       if (shipping.isFallback) {
         await this.notificationsService.create(penggunaId, {
           judul: "Peringatan Jarak Pengiriman",
-          pesan: `Pesanan ${pesanan.id} menggunakan estimasi jarak garis lurus.`,
+          pesan: `Pesanan ${pesanan.id_pesanan} menggunakan estimasi jarak garis lurus.`,
           tipe: "SYSTEM_WARNING",
-          data: { pesananId: pesanan.id },
+          data: { pesananId: pesanan.id_pesanan },
         });
       }
 
       // 3h. Kurangi stok & catat riwayat (retail only)
       if (!isB2B) {
-        await this.helpers.deductInventoryAndLog(storeOrder, pesanan.id, penggunaId);
+        await this.helpers.deductInventoryAndLog(storeOrder, pesanan.id_pesanan, penggunaId);
       }
 
       createdOrders.push(pesanan);
@@ -181,7 +196,7 @@ export class CreateOrderUseCase {
     // ── 5. Emit SSE ke semua listener real-time ─────────────
     for (const order of createdOrders) {
       this.eventEmitter.emit("order.status.updated", {
-        orderId: order.id,
+        orderId: order.id_pesanan,
         status: order.status,
         tokoId: order.tokoId,
       });
@@ -189,8 +204,7 @@ export class CreateOrderUseCase {
 
     // ── 6. Buat pembayaran Xendit (QRIS / Invoice) ─────────
     if (createdOrders.length > 0) {
-      const konsumen = await this.prisma.pengguna.findUnique({
-        where: { id: penggunaId },
+      const konsumen = await this.prisma.pengguna.findUnique({ where: { id_pengguna: penggunaId },
         select: { nama: true, email: true, noTelepon: true },
       });
 

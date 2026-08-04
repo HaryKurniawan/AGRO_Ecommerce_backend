@@ -17,17 +17,17 @@ export class GenerateGlobalDeliveryBatchesUseCase {
   async execute(tipeBatch: "PAGI" | "SIANG") {
     const activeStores = await this.prisma.toko.findMany({
       where: { status: "ACTIVE" },
-      select: { id: true, nama: true },
+      select: { id_toko: true, nama: true },
     });
 
     const results: any[] = [];
 
     for (const store of activeStores) {
       try {
-        const batch = await this.generateBatchUC.execute(store.id, tipeBatch);
+        const batch = await this.generateBatchUC.execute(store.id_toko, tipeBatch);
         if (batch) {
           results.push({
-            tokoId: store.id,
+            tokoId: store.id_toko,
             tokoNama: store.nama,
             batchId: batch.id,
             kodeResi: batch.kodeResi,

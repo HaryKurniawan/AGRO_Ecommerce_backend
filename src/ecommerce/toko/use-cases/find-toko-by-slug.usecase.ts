@@ -14,7 +14,7 @@ export class FindStoreBySlugUseCase {
           where: { status: "ACTIVE" },
           take: 20,
           include: {
-            kategori: { select: { id: true, nama: true } },
+            kategori: { select: { id_kategoriToko: true, nama: true } },
           },
         },
       },
@@ -25,6 +25,7 @@ export class FindStoreBySlugUseCase {
     // Map fields for frontend compatibility
     return {
       ...toko,
+      id: toko.id_toko,
       foto: toko.fotoUrl,
       banner: toko.bannerUrl,
     };

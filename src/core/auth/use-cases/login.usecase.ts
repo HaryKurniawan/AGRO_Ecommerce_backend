@@ -67,14 +67,14 @@ export class LoginUseCase {
     }
 
     const accessToken = this.jwtService.sign({
-      sub: pengguna.id,
+      sub: pengguna.id_pengguna,
       email: pengguna.email,
       peran: pengguna.peran,
     });
 
     // Record login activity
     await this.activityLog.log({
-      penggunaId: pengguna.id,
+      penggunaId: pengguna.id_pengguna,
       kategori: "AUTENTIKASI",
       aksi: "LOGIN",
       deskripsi: `${
@@ -89,7 +89,7 @@ export class LoginUseCase {
     return {
       accessToken,
       pengguna: {
-        id: pengguna.id,
+        id: pengguna.id_pengguna,
         email: pengguna.email,
         nama: pengguna.nama,
         peran: pengguna.peran,

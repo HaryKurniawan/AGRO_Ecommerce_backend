@@ -39,6 +39,7 @@ import { AnalyticsModule } from "./ecommerce/analytics/analytics.module";
 import { MasterKomoditasModule } from "./ecommerce/master-komoditas/master-komoditas.module";
 import { GudangModule } from "./ecommerce/gudang/gudang.module";
 import { BannerModule } from "./ecommerce/banner/banner.module";
+import { PajakModule } from "./ecommerce/pajak/pajak.module";
 
 // Other
 import { UploadModule } from "./core/unggah-foto/upload.module";
@@ -102,6 +103,7 @@ import { TelegramModule } from "./core/telegram/telegram.module";
     ProfitReportModule,
     AnalyticsModule,
     BannerModule,
+    PajakModule,
 
     // Other
     UploadModule,

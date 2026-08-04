@@ -65,8 +65,8 @@ export class NotificationsController {
   @ApiOperation({ summary: "Get my notifikasi" })
   async findByUser(
     @CurrentUser("sub") penggunaId: string,
-    @Query("page", new ParseIntPipe({ optional: true })) page: number = 1,
-    @Query("limit", new ParseIntPipe({ optional: true })) limit: number = 20,
+    @Query("page") page: string | number = 1,
+    @Query("limit") limit: string | number = 20,
   ): Promise<any> {
     return this.notifService.findByUser(penggunaId, page, limit);
   }

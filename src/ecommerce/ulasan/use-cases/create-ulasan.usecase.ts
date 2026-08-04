@@ -15,8 +15,7 @@ export class CreateReviewUseCase {
   ) {}
 
   async execute(penggunaId: string, dto: CreateReviewDto) {
-    const itemPesanan = await this.prisma.itemPesananEcom.findUnique({
-      where: { id: dto.itemPesananId },
+    const itemPesanan = await this.prisma.itemPesananEcom.findUnique({ where: { id_itemPesanan: dto.itemPesananId },
       include: { pesanan: true, ulasan: true },
     });
 

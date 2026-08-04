@@ -8,7 +8,7 @@ export class FindPengajuanStokByIdUseCase {
 
   async execute(id: string) {
     const request = await this.stokRepo.findUnique({
-      where: { id },
+      where: { id_pengajuanStok: id },
       include: {
         items: true, // ✅ Remove produk include
         toko: true,

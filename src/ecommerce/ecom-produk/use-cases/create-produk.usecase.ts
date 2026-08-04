@@ -1,7 +1,5 @@
 import { Injectable } from "@nestjs/common";
-
 import { ProdukEcomsRepository } from "../repositories/ecom-produks.repository";
-
 
 @Injectable()
 export class CreateProductUseCase {
@@ -31,36 +29,17 @@ export class CreateProductUseCase {
       data: {
         tokoId,
         ...data,
+        stokFisikKg: data.stok,
+        stokTersediaKg: data.stok,
         status: data.status || "DRAFT",
       },
       include: { toko: { select: { nama: true } }, kategori: true },
     });
 
-    // Gunakan upsertInventory agar tidak ada duplikasi dan tidak perlu (as any)
-    await this.productsRepo.upsertInventory({
-      where: {
-        tokoId_produkId: {
-          tokoId,
-          produkId: produk.id,
-        },
-      },
-      create: {
-        tokoId,
-        produkId: produk.id,
-        stokTersediaKg: data.stok,
-        stokFisikKg: data.stok,
-      },
-      update: {
-        stokTersediaKg: data.stok,
-        stokFisikKg: data.stok,
-      },
-    });
-
-    // Record the initial stock entry in history
     if (data.stok > 0 && penggunaId) {
       await this.productsRepo.createStockHistory({
         data: {
-          produkId: produk.id,
+          produkId: produk.id_produk,
           penggunaId,
           tipe: "IN",
           kuantitas: data.stok,
@@ -69,8 +48,6 @@ export class CreateProductUseCase {
         },
       });
     }
-
-
 
     return produk;
   }

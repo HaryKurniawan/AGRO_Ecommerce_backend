@@ -55,23 +55,7 @@ export class ProdukEcomsRepository {
     return this.prisma.riwayatStokProduk.count(args);
   }
 
-  // ── Inventaris Toko ────────────────────────────────────────────────────────
 
-  async findUniqueInventory(args: Prisma.InventarisTokoFindUniqueArgs) {
-    return this.prisma.inventarisToko.findUnique(args);
-  }
-
-  async updateInventory(args: Prisma.InventarisTokoUpdateArgs) {
-    return this.prisma.inventarisToko.update(args);
-  }
-
-  async findManyInventory(args: Prisma.InventarisTokoFindManyArgs) {
-    return this.prisma.inventarisToko.findMany(args);
-  }
-
-  async upsertInventory(args: Prisma.InventarisTokoUpsertArgs) {
-    return this.prisma.inventarisToko.upsert(args);
-  }
 
   // ── Varian Kemasan ─────────────────────────────────────────────────────────
 

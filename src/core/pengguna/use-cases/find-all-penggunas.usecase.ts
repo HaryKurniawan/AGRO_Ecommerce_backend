@@ -31,7 +31,7 @@ export class FindAllUsersUseCase {
         take: limit,
         orderBy: { createdAt: "desc" },
         select: {
-          id: true,
+          id_pengguna: true,
           email: true,
           nama: true,
           peran: true,

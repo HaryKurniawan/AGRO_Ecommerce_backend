@@ -38,7 +38,7 @@ export class GetSellerCourierAffiliationsUseCase {
         peran: s.peran,
         sellerProfile: s.profilPenjual
           ? {
-              id: s.profilPenjual.id,
+              id: s.profilPenjual.id_profilPenjual,
               storeName: s.profilPenjual.namaToko,
               status: s.profilPenjual.status,
               store: store

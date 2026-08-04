@@ -10,7 +10,7 @@ export class UnmapGudangMasterProdukUseCase {
     // Check if mapping exists
     const mappings = await this.masterRepo.findManyMappings({
       where: {
-        id: mappingId,
+        id_mappingProdukGudang: mappingId,
         masterProdukId: masterId,
       },
     });
@@ -20,7 +20,7 @@ export class UnmapGudangMasterProdukUseCase {
     }
 
     return this.masterRepo.deleteMapping({
-      where: { id: mappingId },
+      where: { id_mappingProdukGudang: mappingId },
     });
   }
 }

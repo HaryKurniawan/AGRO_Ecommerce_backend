@@ -34,9 +34,9 @@ export class GetProfitReportUseCase {
       const persenKeuntungan = tx.totalHargaBeli > 0 ? (keuntungan / tx.totalHargaBeli) * 100 : 0;
       
       return {
-        id: tx.id,
+        id_pesanan: tx.id_transaksiKeuntungan,
         tanggalTransaksi: tx.tanggalTransaksi.toISOString(),
-        nomorPesanan: tx.pesanan.id,
+        nomorPesanan: tx.pesanan.id_pesanan,
         pesananId: tx.pesananId,
         jumlahTerjual: tx.jumlahTerjual,
         hargaBeli: tx.hargaBeli,

@@ -17,7 +17,7 @@ export class FindMyPengajuanStokUseCase {
     }
 
     const toko = await this.tokosRepo.findUnique({
-      where: { penjualId: profil.id },
+      where: { penjualId: profil.id_profilPenjual },
     });
 
     if (!toko) {
@@ -25,7 +25,7 @@ export class FindMyPengajuanStokUseCase {
     }
 
     return this.stokRepo.findMany({
-      where: { tokoId: toko.id },
+      where: { tokoId: toko.id_toko },
       include: {
         items: true, // ✅ Remove produk include
       },

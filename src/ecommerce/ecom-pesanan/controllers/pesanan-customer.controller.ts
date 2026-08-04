@@ -72,6 +72,25 @@ export class PesananCustomerController {
     );
   }
 
+  @Sse("stream")
+  @SkipTransform()
+  @ApiOperation({ summary: "Stream order status updates" })
+  streamOrders(): Observable<MessageEvent> {
+    const updatesLocal$ = fromEvent(this.eventEmitter, "order.status.updated");
+    
+    const updates$ = updatesLocal$.pipe(
+      map((payload: any) => ({
+        data: payload,
+      })),
+    );
+
+    const heartbeat$ = interval(15000).pipe(
+      map(() => ({ data: { type: "heartbeat" } })),
+    );
+
+    return merge(updates$, heartbeat$);
+  }
+
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Get(":id")
@@ -116,22 +135,4 @@ export class PesananCustomerController {
     return this.confirmPaymentUC.execute(id, penggunaId);
   }
 
-  @Sse("stream")
-  @SkipTransform()
-  @ApiOperation({ summary: "Stream order status updates" })
-  streamOrders(): Observable<MessageEvent> {
-    const updatesLocal$ = fromEvent(this.eventEmitter, "order.status.updated");
-    
-    const updates$ = updatesLocal$.pipe(
-      map((payload: any) => ({
-        data: payload,
-      })),
-    );
-
-    const heartbeat$ = interval(15000).pipe(
-      map(() => ({ data: { type: "heartbeat" } })),
-    );
-
-    return merge(updates$, heartbeat$);
-  }
 }

@@ -115,7 +115,7 @@ export class GenerateOrderReportUseCase {
 
       const rowData = [
         index + 1,
-        order.id,
+        order.id_pesanan,
         new Date(order.createdAt).toLocaleString("id-ID"),
         order.status,
         type,

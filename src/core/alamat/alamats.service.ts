@@ -7,10 +7,11 @@ export class AddressesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findByUser(penggunaId: string) {
-    return this.prisma.alamatKonsumen.findMany({
+    const addresses = await this.prisma.alamatKonsumen.findMany({
       where: { konsumenId: penggunaId },
       orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
     });
+    return addresses.map((a: any) => ({ ...a, id: a.id_alamatPembeli }));
   }
 
   async create(
@@ -43,14 +44,15 @@ export class AddressesService {
         data: { isDefault: false },
       });
     }
-    return this.prisma.alamatKonsumen.create({
+    const newAddress = await this.prisma.alamatKonsumen.create({
       data: { konsumenId: penggunaId, ...data },
     });
+    return { ...newAddress, id: newAddress.id_alamatPembeli };
   }
 
   async update(id: string, penggunaId: string, data: Record<string, unknown>) {
     const alamat = await this.prisma.alamatKonsumen.findUnique({
-      where: { id },
+      where: { id_alamatPembeli: id },
     });
     if (!alamat || alamat.konsumenId !== penggunaId)
       throw new NotFoundException("Address not found");
@@ -60,16 +62,17 @@ export class AddressesService {
         data: { isDefault: false },
       });
     }
-    return this.prisma.alamatKonsumen.update({ where: { id }, data });
+    const updated = await this.prisma.alamatKonsumen.update({ where: { id_alamatPembeli: id }, data });
+    return { ...updated, id: updated.id_alamatPembeli };
   }
 
   async remove(id: string, penggunaId: string) {
     const alamat = await this.prisma.alamatKonsumen.findUnique({
-      where: { id },
+      where: { id_alamatPembeli: id },
     });
     if (!alamat || alamat.konsumenId !== penggunaId)
       throw new NotFoundException("Address not found");
-    return this.prisma.alamatKonsumen.delete({ where: { id } });
+    return this.prisma.alamatKonsumen.delete({ where: { id_alamatPembeli: id } });
   }
 
   async setDefault(id: string, penggunaId: string) {
@@ -77,9 +80,10 @@ export class AddressesService {
       where: { konsumenId: penggunaId },
       data: { isDefault: false },
     });
-    return this.prisma.alamatKonsumen.update({
-      where: { id },
+    const updated = await this.prisma.alamatKonsumen.update({
+      where: { id_alamatPembeli: id },
       data: { isDefault: true },
     });
+    return { ...updated, id: updated.id_alamatPembeli };
   }
 }

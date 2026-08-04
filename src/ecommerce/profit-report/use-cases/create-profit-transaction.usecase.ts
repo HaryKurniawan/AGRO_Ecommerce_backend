@@ -75,7 +75,7 @@ export class CreateProfitTransactionUseCase {
       // Create batch details for Retail
       for (const allocation of batchAllocations) {
         await this.profitReportRepository.createProfitTransactionBatch({
-          transaksiKeuntunganId: profitTx.id,
+          transaksiKeuntunganId: profitTx.id_transaksiKeuntungan,
           stokMasukId: allocation.batchId,
           jumlahDigunakan: allocation.jumlahDigunakan,
           hargaBeli: allocation.hargaBeli,

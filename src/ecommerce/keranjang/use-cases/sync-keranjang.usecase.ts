@@ -27,7 +27,7 @@ export class SyncCartUseCase {
     if (userCity) {
       const productIds = items.map((i) => i.produkId);
       const products = await this.prisma.produkEcom.findMany({
-        where: { id: { in: productIds } },
+        where: { id_produk: { in: productIds } },
         include: { toko: true },
       });
 
@@ -54,8 +54,7 @@ export class SyncCartUseCase {
 
       if (existingItem) {
         operations.push(
-          this.prisma.itemKeranjangEcom.update({
-            where: { id: existingItem.id },
+          this.prisma.itemKeranjangEcom.update({ where: { id_itemKeranjang: existingItem.id_itemKeranjang },
             data: { jumlah: existingItem.jumlah + item.jumlah },
           })
         );
@@ -63,7 +62,7 @@ export class SyncCartUseCase {
         operations.push(
           this.prisma.itemKeranjangEcom.create({
             data: {
-              keranjangId: keranjang.id,
+              keranjangId: keranjang.id_keranjang,
               produkId: item.produkId,
               varianKemasanId: varianId,
               jumlah: item.jumlah,

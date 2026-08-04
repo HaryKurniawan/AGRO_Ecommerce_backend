@@ -32,7 +32,7 @@ export class GetRiwayatTerlarisQuery {
           ...whereBase,
           tanggalTransaksi: { gte: currentRange.gte, lte: currentRange.lte },
         },
-        select: { produkId: true, jumlahTerjual: true, hargaJual: true, id: true },
+        select: { produkId: true, jumlahTerjual: true, hargaJual: true, id_transaksiKeuntungan: true },
       }),
       this.prisma.transaksiKeuntungan.findMany({
         where: {
@@ -49,13 +49,13 @@ export class GetRiwayatTerlarisQuery {
         currentMap.set(t.produkId, {
           produkId: t.produkId,
           _sum: { jumlahTerjual: 0, totalHargaJual: 0 },
-          _count: { id: 0 },
+          _count: { id_transaksiKeuntungan: 0 },
         });
       }
       const agg = currentMap.get(t.produkId);
       agg._sum.jumlahTerjual += t.jumlahTerjual;
       agg._sum.totalHargaJual += t.jumlahTerjual * Number(t.hargaJual);
-      agg._count.id += 1;
+      agg._count.id_transaksiKeuntungan += 1;
     }
     const aggCurrent = Array.from(currentMap.values());
 
@@ -76,18 +76,18 @@ export class GetRiwayatTerlarisQuery {
     const produkIds = aggCurrent.map((a) => a.produkId);
     const produks = await this.prisma.produkEcom.findMany({
       where: {
-        id: { in: produkIds },
+        id_produk: { in: produkIds },
         ...(filters.kategoriId && { kategoriId: filters.kategoriId }),
       },
       select: {
-        id: true,
+        id_produk: true,
         nama: true,
         namaEtalase: true,
         gambarUrl: true,
         satuan: true,
         kategoriId: true,
-        toko: { select: { id: true, nama: true } },
-        kategori: { select: { id: true, nama: true, icon: true } },
+        toko: { select: { id_toko: true, nama: true } },
+        kategori: { select: { id_kategoriToko: true, nama: true, icon: true } },
       },
     });
 

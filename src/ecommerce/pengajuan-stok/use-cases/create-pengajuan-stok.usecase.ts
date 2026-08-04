@@ -3,6 +3,7 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 import { PengajuanStokRepository } from "../repositories/pengajuan-stok.repository";
 import { TokosRepository } from "../../toko/repositories/tokos.repository";
 import { WebhookQueueService } from "../queue/webhook-queue.service";
+import { IdGenerator } from "../../utils/id-generator.util";
 
 @Injectable()
 export class CreatePengajuanStokUseCase {
@@ -23,8 +24,7 @@ export class CreatePengajuanStokUseCase {
       items: {
         produkGudangId: string;
         jumlahPermintaan: number;
-        ukuranKemasanKg?: number;
-        jumlahKemasan?: number;
+
         totalKg?: number;
         kemasanDetail?: { ukuranKg: number; jumlahKemasan: number }[];
       }[];
@@ -37,7 +37,7 @@ export class CreatePengajuanStokUseCase {
     }
 
     const toko = await this.tokosRepo.findUnique({
-      where: { penjualId: profil.id },
+      where: { penjualId: profil.id_profilPenjual },
     });
 
     if (!toko) {
@@ -51,7 +51,7 @@ export class CreatePengajuanStokUseCase {
     // ✅ OPEN MARKETPLACE: No affiliation check required
     // Any seller can create stock request to any warehouse
     console.log(
-      `[CreatePengajuanStok] Open marketplace mode - no affiliation check for toko ${toko.id} to gudang ${data.gudangId}`,
+      `[CreatePengajuanStok] Open marketplace mode - no affiliation check for toko ${toko.id_toko} to gudang ${data.gudangId}`,
     );
 
     // ✅ Fetch product details from GUDANG backend for snapshot
@@ -59,7 +59,7 @@ export class CreatePengajuanStokUseCase {
     const productDetailsPromises = data.items.map(async (item) => {
       try {
         const response = await fetch(
-          `${gudangApiUrl}/api/produk/affiliate?gudangId=${data.gudangId}&tokoId=${toko.id}`,
+          `${gudangApiUrl}/api/produk/affiliate?gudangId=${data.gudangId}&tokoId=${toko.id_toko}`,
         );
 
         if (!response.ok) {
@@ -83,14 +83,7 @@ export class CreatePengajuanStokUseCase {
           satuan: produk.satuan,
           hargaGudang: produk.hargaGudang,
           jumlahPermintaan: item.jumlahPermintaan,
-          ukuranKemasanKg:
-            item.ukuranKemasanKg !== undefined
-              ? Number(item.ukuranKemasanKg)
-              : null,
-          jumlahKemasan:
-            item.jumlahKemasan !== undefined
-              ? Number(item.jumlahKemasan)
-              : null,
+
           totalKg:
             item.totalKg !== undefined ? Number(item.totalKg) : null,
           kemasanDetail: item.kemasanDetail ?? null,
@@ -137,9 +130,13 @@ export class CreatePengajuanStokUseCase {
 
     // ✅ Create pengajuan with snapshot data
     const mode = data.modePengemasan || "DEFAULT";
+    const totalPengajuan = await this.stokRepo.count({});
+    const nomorPengajuan = IdGenerator.generateStockRequestNumber(toko.kodeToko || "TKO", totalPengajuan + 1);
+
     const pengajuan = await this.stokRepo.create({
       data: {
-        tokoId: toko.id,
+        nomorPengajuan,
+        tokoId: toko.id_toko,
         gudangId: data.gudangId,
         catatan: data.catatan,
         status: "DIAJUKAN",
@@ -155,8 +152,7 @@ export class CreatePengajuanStokUseCase {
             satuan: item.satuan,
             hargaGudang: item.hargaGudang,
             jumlahPermintaan: item.jumlahPermintaan,
-            ukuranKemasanKg: item.ukuranKemasanKg,
-            jumlahKemasan: item.jumlahKemasan,
+
             // Simpan detail kemasan (1kg / 2.5kg) ke DB ecommerce
             ...(item.kemasanDetail && item.kemasanDetail.length > 0
               ? {
@@ -185,8 +181,9 @@ export class CreatePengajuanStokUseCase {
       {
         url: webhookUrl,
         payload: {
-          ecommerceRequestId: pengajuan.id,
-          tokoId: toko.id,
+          ecommerceRequestId: pengajuan.id_pengajuanStok,
+          nomorPengajuan: pengajuan.nomorPengajuan,
+          tokoId: toko.id_toko,
           tokoNama: toko.nama,
           gudangId: data.gudangId,
           catatan: data.catatan,
@@ -205,7 +202,7 @@ export class CreatePengajuanStokUseCase {
     );
 
     console.log(
-      `[Webhook] ✅ Queued pengajuan stok ${pengajuan.id} to be sent to GUDANG backend`,
+      `[Webhook] ✅ Queued pengajuan stok ${pengajuan.id_pengajuanStok} to be sent to GUDANG backend`,
     );
 
     return pengajuan;

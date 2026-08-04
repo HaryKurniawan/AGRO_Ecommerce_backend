@@ -42,8 +42,8 @@ export class CreateOrderHelpersService {
 
     for (const item of items) {
       const product = await this.productsRepo.findUnique({
-        where: { id: item.produkId },
-        select: { id: true, nama: true, beratGram: true, harga: true },
+        where: { id_produk: item.produkId },
+        select: { id_produk: true, nama: true, beratGram: true, harga: true },
       });
       if (!product) {
         throw new BadRequestException(`Produk ${item.produkId} tidak ditemukan`);
@@ -54,7 +54,7 @@ export class CreateOrderHelpersService {
 
       if (item.varianKemasanId) {
         const varian = await this.prisma.varianKemasan.findUnique({
-          where: { id: item.varianKemasanId },
+          where: { id_varianKemasan: item.varianKemasanId },
         });
         if (varian) {
           weightGram = varian.ukuranKg * 1000;
@@ -79,7 +79,7 @@ export class CreateOrderHelpersService {
     for (const item of storeOrder.item) {
       if (item.varianKemasanId) {
         const varian = await this.prisma.varianKemasan.findUnique({
-          where: { id: item.varianKemasanId },
+          where: { id_varianKemasan: item.varianKemasanId },
         });
         if (!varian || !varian.isActive || varian.stokKemasan < item.jumlah) {
           throw new BadRequestException(
@@ -88,13 +88,10 @@ export class CreateOrderHelpersService {
           );
         }
       } else {
-        const inventories = await this.productsRepo.findManyInventory({
-          where: { tokoId: storeOrder.tokoId, produkId: item.produkId },
+        const produk = await this.productsRepo.findUnique({
+          where: { id_produk: item.produkId },
         });
-        const totalAvailable = inventories.reduce(
-          (sum, inv) => sum + inv.stokTersediaKg,
-          0,
-        );
+        const totalAvailable = produk?.stokTersediaKg || 0;
         if (totalAvailable < item.jumlah) {
           throw new BadRequestException(
             `Stok Toko untuk produk ${item.produkId} tidak mencukupi ` +
@@ -119,37 +116,26 @@ export class CreateOrderHelpersService {
       // Kemasan: decrement stokKemasan, hitung konversi ke kg
       if (item.varianKemasanId) {
         const varian = await this.prisma.varianKemasan.update({
-          where: { id: item.varianKemasanId },
+          where: { id_varianKemasan: item.varianKemasanId },
           data: { stokKemasan: { decrement: item.jumlah } },
         });
         qtyToDeductKg = item.jumlah * (varian?.ukuranKg || 1.0);
       }
 
-      // Kurangi inventory toko
-      const inventories = await this.productsRepo.findManyInventory({
-        where: { tokoId: storeOrder.tokoId, produkId: item.produkId },
-        take: 1,
-      });
-      if (inventories[0]) {
-        await this.productsRepo.updateInventory({
-          where: { id: inventories[0].id },
-          data: {
-            stokTersediaKg: { decrement: qtyToDeductKg },
-            stokFisikKg: { decrement: qtyToDeductKg },
-          },
-        });
-      }
-
       // Sinkronisasi total stok produk
-      const currentStok = await this.productsRepo
-        .findUnique({ where: { id: item.produkId }, select: { stok: true } })
-        .then((p) => p?.stok ?? 0);
+      const currentProduk = await this.productsRepo.findUnique({
+        where: { id_produk: item.produkId },
+        select: { stok: true, stokFisikKg: true, stokTersediaKg: true },
+      });
 
+      const currentStok = currentProduk?.stok ?? 0;
       const finalStok = Math.max(0, currentStok - qtyToDeductKg);
 
       await this.productsRepo.update({
-        where: { id: item.produkId },
+        where: { id_produk: item.produkId },
         data: {
+          stokTersediaKg: { decrement: qtyToDeductKg },
+          stokFisikKg: { decrement: qtyToDeductKg },
           stok: finalStok,
           status: finalStok === 0 ? "OUT_OF_STOCK" : undefined,
         },
@@ -184,7 +170,7 @@ export class CreateOrderHelpersService {
       for (const itemPesanan of pesanan.item) {
         await this.profitReportService.createProfitTransaction({
           id: itemPesanan.id,
-          pesananId: pesanan.id,
+          pesananId: pesanan.id_pesanan,
           produkId: itemPesanan.produkId,
           jumlah: itemPesanan.jumlah,
           harga: itemPesanan.harga,
@@ -194,7 +180,7 @@ export class CreateOrderHelpersService {
         });
       }
     } catch (err) {
-      this.logger.error(`[Profit] Failed for pesanan ${pesanan.id}:`, err);
+      this.logger.error(`[Profit] Failed for pesanan ${pesanan.id_pesanan}:`, err);
     }
   }
 
@@ -213,7 +199,7 @@ export class CreateOrderHelpersService {
       for (const item of store.item) {
         await this.ordersRepo.deleteManyCartItems({
           where: {
-            keranjangId: keranjang.id,
+            keranjangId: keranjang.id_keranjang,
             produkId: item.produkId,
             varianKemasanId: item.varianKemasanId || null,
           },
@@ -270,6 +256,14 @@ export class CreateOrderHelpersService {
             category: "Pengiriman",
           });
         }
+        if (order.ppnAmount > 0) {
+          xenditItems.push({
+            name: "PPN",
+            quantity: 1,
+            price: order.ppnAmount,
+            category: "Pajak",
+          });
+        }
       }
 
       const invoice = await this.xenditService.createInvoice({
@@ -288,7 +282,7 @@ export class CreateOrderHelpersService {
     // Simpan ke semua pesanan yang baru dibuat
     for (const order of createdOrders) {
       await this.prisma.pesananEcom.update({
-        where: { id: order.id },
+        where: { id_pesanan: order.id_pesanan },
         data: { paymentId: finalPaymentId, paymentUrl: finalPaymentUrl },
       });
       order.paymentId = finalPaymentId;
@@ -304,12 +298,12 @@ export class CreateOrderHelpersService {
       setTimeout(async () => {
         try {
           this.logger.debug(`Checking if order ${orderId} needs to be canceled...`);
-          const order = await this.ordersRepo.findUnique({ where: { id: orderId } });
+          const order = await this.ordersRepo.findUnique({ where: { id_pesanan: orderId } });
           if (!order) return;
           if (order.status === "MENUNGGU_BAYAR") {
             this.logger.log(`Auto-canceling unpaid order ${orderId}`);
             await this.prisma.pesananEcom.update({
-              where: { id: orderId },
+              where: { id_pesanan: orderId },
               data: { status: "DIBATALKAN" },
             });
             this.logger.log(`Successfully canceled order ${orderId}`);

@@ -19,17 +19,17 @@ export class GetPesananHarianQuery {
         status: { in: ["SELESAI", "DITUTUP"] as any },
       },
       select: {
-        id: true,
+        id_pesanan: true,
         totalHarga: true,
         status: true,
         createdAt: true,
-        konsumen: { select: { id: true, nama: true } },
+        konsumen: { select: { id_pengguna: true, nama: true } },
         item: {
           select: {
-            id: true,
+            id_itemPesanan: true,
             jumlah: true,
             harga: true,
-            produk: { select: { id: true, nama: true, gambarUrl: true } }
+            produk: { select: { id_produk: true, nama: true, gambarUrl: true } }
           }
         }
       },

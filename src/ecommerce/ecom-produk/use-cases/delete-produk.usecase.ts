@@ -13,7 +13,7 @@ export class DeleteProductUseCase {
 
   async execute(id: string) {
     await this.findProductByIdUC.execute(id);
-    const result = await this.productsRepo.delete({ where: { id } });
+    const result = await this.productsRepo.delete({ where: { id_produk: id } });
 
 
 

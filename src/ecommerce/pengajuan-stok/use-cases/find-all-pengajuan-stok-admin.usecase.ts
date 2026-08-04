@@ -34,9 +34,7 @@ export class FindAllPengajuanStokAdminUseCase {
 
     const requests = await this.stokRepo.findMany({
       include: {
-        toko: {
-          select: {
-            id: true,
+        toko: { select: { id_toko: true,
             nama: true,
             slug: true,
           },

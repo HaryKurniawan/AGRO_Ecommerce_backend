@@ -7,10 +7,9 @@ export class GetProfileUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(penggunaId: string) {
-    const pengguna = await this.prisma.pengguna.findUnique({
-      where: { id: penggunaId },
+    const pengguna = await this.prisma.pengguna.findUnique({ where: { id_pengguna: penggunaId },
       select: {
-        id: true,
+        id_pengguna: true,
         email: true,
         nama: true,
         noTelepon: true,
@@ -20,9 +19,7 @@ export class GetProfileUseCase {
         emailTerverifikasiPada: true,
         profilPenjual: {
           include: {
-            toko: {
-              select: {
-                id: true,
+            toko: { select: { id_toko: true,
                 nama: true,
                 slug: true,
                 kabupaten: true,
@@ -40,7 +37,7 @@ export class GetProfileUseCase {
     }
 
     if (pengguna.profilPenjual) {
-      const tokoId = pengguna.profilPenjual.toko?.id;
+      const tokoId = pengguna.profilPenjual.toko?.id_toko;
       if (tokoId) {
         const [totalProduk, totalPenjualanAgg, ratingAgg] = await Promise.all([
           this.prisma.produkEcom.count({

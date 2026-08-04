@@ -72,8 +72,7 @@ export class UpdateShippingStatusUseCase {
     if (data.sendEmailNotification) {
       const courierId = data.kurirPenggunaId || pengiriman.kurirPenggunaId;
       if (courierId) {
-        const courier = await this.prisma.pengguna.findUnique({
-          where: { id: courierId },
+        const courier = await this.prisma.pengguna.findUnique({ where: { id_pengguna: courierId },
         });
         if (courier && courier.email) {
           await this.emailService.sendCourierTaskNotification(
@@ -89,7 +88,7 @@ export class UpdateShippingStatusUseCase {
     // ONLY when status is IN_TRANSIT → pesanan status becomes DIKIRIM (User sees "Sedang Dikirim")
     if (nextStatus === "IN_TRANSIT") {
       await this.ordersRepo.update({
-        where: { id: pesananId },
+        where: { id_pesanan: pesananId },
         data: { status: "DIKIRIM" },
       });
     }

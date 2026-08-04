@@ -16,7 +16,7 @@ async function main() {
 
   // ── Admin ───────────────────────────────────────────────────────────
   await prisma.pengguna.upsert({
-    where: { id: '550e8400-e29b-41d4-a716-446655440000' },
+    where: { id_pengguna: '550e8400-e29b-41d4-a716-446655440000' },
     update: {
       email: 'kurniawan3516@gmail.com',
       peran: 'SUPER_ADMIN',
@@ -25,7 +25,7 @@ async function main() {
       emailTerverifikasiPada: new Date(),
     },
     create: {
-      id: '550e8400-e29b-41d4-a716-446655440000',
+      id_pengguna: '550e8400-e29b-41d4-a716-446655440000',
       email: 'kurniawan3516@gmail.com',
       kataSandi: hashedPassword,
       nama: 'Admin Agro Jabar',

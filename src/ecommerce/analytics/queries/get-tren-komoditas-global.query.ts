@@ -32,7 +32,7 @@ export class GetTrenKomoditasGlobalQuery {
           statusPesanan: { in: ["SELESAI", "DITUTUP"] as any },
           tanggalTransaksi: { gte: currentRange.gte, lte: currentRange.lte },
         },
-        select: { produkId: true, jumlahTerjual: true, hargaJual: true, id: true },
+        select: { produkId: true, jumlahTerjual: true, hargaJual: true, id_transaksiKeuntungan: true },
       }),
       this.prisma.transaksiKeuntungan.findMany({
         where: {
@@ -49,13 +49,13 @@ export class GetTrenKomoditasGlobalQuery {
         currentMap.set(t.produkId, {
           produkId: t.produkId,
           _sum: { jumlahTerjual: 0, totalHargaJual: 0 },
-          _count: { id: 0 },
+          _count: { id_transaksiKeuntungan: 0 },
         });
       }
       const agg = currentMap.get(t.produkId);
       agg._sum.jumlahTerjual += t.jumlahTerjual;
       agg._sum.totalHargaJual += t.jumlahTerjual * Number(t.hargaJual);
-      agg._count.id += 1;
+      agg._count.id_transaksiKeuntungan += 1;
     }
     const aggCurrent = Array.from(currentMap.values());
 
@@ -81,14 +81,14 @@ export class GetTrenKomoditasGlobalQuery {
     ];
 
     const produks = await this.prisma.produkEcom.findMany({
-      where: { id: { in: allProdukIds } },
+      where: { id_produk: { in: allProdukIds } },
       select: {
-        id: true,
+        id_produk: true,
         tokoId: true,
         masterProdukId: true,
         masterProduk: {
           select: {
-            id: true,
+            id_masterProduk: true,
             nama: true,
             kodeKomoditasGlobal: true,
           },

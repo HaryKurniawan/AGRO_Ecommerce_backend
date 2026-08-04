@@ -8,12 +8,12 @@ export class AdminRejectTakedownUseCase {
 
   async execute(reviewId: string) {
     const ulasan = await this.prisma.ulasanProdukEcom.findUnique({
-      where: { id: reviewId },
+      where: { id_ulasanProduk: reviewId },
     });
     if (!ulasan) throw new NotFoundException("Review tidak ditemukan");
 
     return this.prisma.ulasanProdukEcom.update({
-      where: { id: reviewId },
+      where: { id_ulasanProduk: reviewId },
       data: { statusLaporan: "TAKEDOWN_REJECTED", isHidden: false },
     });
   }

@@ -8,7 +8,7 @@ export class FindUserByIdUseCase {
 
   async execute(id: string) {
     const pengguna = await this.usersRepo.findUnique({
-      where: { id },
+      where: { id_pengguna: id },
       include: {
         profilPenjual: true,
       },

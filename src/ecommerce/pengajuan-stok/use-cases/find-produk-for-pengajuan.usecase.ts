@@ -26,7 +26,7 @@ export class FindProdukForPengajuanUseCase {
 
       // 2. Find store
       const toko = await this.tokosRepo.findUnique({
-        where: { penjualId: profil.id },
+        where: { penjualId: profil.id_profilPenjual },
       });
 
       if (!toko) {
@@ -46,11 +46,11 @@ export class FindProdukForPengajuanUseCase {
         process.env.GUDANG_API_URL ||
         process.env.PROCESSING_SERVICE_URL ||
         "http://localhost:5005";
-      const endpoint = `${gudangApiUrl}/api/produk/affiliate?gudangId=${gudangId}&tokoId=${toko.id}`;
+      const endpoint = `${gudangApiUrl}/api/produk/affiliate?gudangId=${gudangId}&tokoId=${toko.id_toko}`;
 
       console.log(`[FindProdukForPengajuan] Fetching from: ${endpoint}`);
       console.log(
-        `[FindProdukForPengajuan] Toko ID: ${toko.id}, Gudang ID: ${gudangId}`,
+        `[FindProdukForPengajuan] Toko ID: ${toko.id_toko}, Gudang ID: ${gudangId}`,
       );
 
       const response = await fetch(endpoint, {
@@ -139,7 +139,7 @@ export class FindProdukForPengajuanUseCase {
               minimalPembelianKg: warehouseProduct.minimalPembelianKg || 300,
               gambarUrl:
                 mapping.masterProduk.gambarUrl || warehouseProduct.gambarUrl, // Standard image preferred
-              masterProdukId: mapping.masterProduk.id,
+              masterProdukId: mapping.masterProduk.id_masterProduk,
               kategoriId: mapping.masterProduk.kategoriId,
               kategoriNama: mapping.masterProduk.kategori.nama,
               allowCustomName: mapping.masterProduk.allowCustomName,

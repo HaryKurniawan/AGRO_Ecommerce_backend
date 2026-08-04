@@ -32,7 +32,7 @@ export class CreateGuestSessionUseCase {
     });
 
     const accessToken = this.jwtService.sign({
-      sub: pengguna.id,
+      sub: pengguna.id_pengguna,
       email: pengguna.email,
       peran: pengguna.peran,
     });
@@ -41,7 +41,7 @@ export class CreateGuestSessionUseCase {
       message: "Guest session created successfully",
       guestToken: accessToken,
       pengguna: {
-        id: pengguna.id,
+        id: pengguna.id_pengguna,
         nama: pengguna.nama,
         email: pengguna.email,
         peran: pengguna.peran,

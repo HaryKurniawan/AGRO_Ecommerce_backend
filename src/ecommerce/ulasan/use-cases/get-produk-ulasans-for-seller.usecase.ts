@@ -8,7 +8,7 @@ export class GetProductReviewsForSellerUseCase {
 
   async execute(produkId: string, tokoId: string, page = 1, limit = 20) {
     const produk = await this.prisma.produkEcom.findFirst({
-      where: { id: produkId, tokoId },
+      where: { id_produk: produkId, tokoId },
     });
     if (!produk)
       throw new ForbiddenException("Produk tidak ditemukan di toko Anda");
@@ -17,7 +17,7 @@ export class GetProductReviewsForSellerUseCase {
     const [ulasan, total] = await Promise.all([
       this.prisma.ulasanProdukEcom.findMany({
         where: { produkId },
-        include: { pengguna: { select: { id: true, nama: true } } },
+        include: { pengguna: { select: { id_pengguna: true, nama: true } } },
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,

@@ -50,10 +50,10 @@ export class AdminGetCsConversationsUseCase {
 
     // Fetch all participants with their roles AND seller profile for store name
     const allUsers = await this.chatRepo.findManyUsers({
-      where: { id: { in: Array.from(allUserIds) } },
+      where: { id_pengguna: { in: Array.from(allUserIds) } },
       select: {
-        id: true,
-        nama: true,
+                id_pengguna: true,
+                nama: true,
         email: true,
         peran: true,
         profilPenjual: {
@@ -61,7 +61,7 @@ export class AdminGetCsConversationsUseCase {
         },
       },
     });
-    const userMap = new Map(allUsers.map((u) => [u.id, u]));
+    const userMap = new Map(allUsers.map((u) => [u.id_pengguna, u]));
 
     // Admin roles — the "other" user is whoever is NOT one of these
     const ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN_CS"];

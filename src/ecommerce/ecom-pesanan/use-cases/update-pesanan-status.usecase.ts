@@ -23,7 +23,7 @@ export class UpdateOrderStatusUseCase {
       );
     }
     const updatedOrder = await this.ordersRepo.update({
-      where: { id },
+      where: { id_pesanan: id },
       data: {
         status: status as
           | "MENUNGGU_BAYAR"

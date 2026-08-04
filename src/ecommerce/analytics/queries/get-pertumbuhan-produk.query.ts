@@ -86,14 +86,14 @@ export class GetPertumbuhanProdukQuery {
     ];
 
     const produks = await this.prisma.produkEcom.findMany({
-      where: { id: { in: allProdukIds }, tokoId: filters.tokoId },
+      where: { id_produk: { in: allProdukIds }, tokoId: filters.tokoId },
       select: {
-        id: true,
+        id_produk: true,
         nama: true,
         namaEtalase: true,
         gambarUrl: true,
         satuan: true,
-        kategori: { select: { id: true, nama: true } },
+        kategori: { select: { id_kategoriToko: true, nama: true } },
       },
     });
 

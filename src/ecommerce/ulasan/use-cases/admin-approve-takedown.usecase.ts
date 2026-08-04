@@ -10,12 +10,12 @@ export class AdminApproveTakedownUseCase {
 
   async execute(reviewId: string) {
     const ulasan = await this.prisma.ulasanProdukEcom.findUnique({
-      where: { id: reviewId },
+      where: { id_ulasanProduk: reviewId },
     });
     if (!ulasan) throw new NotFoundException("Review tidak ditemukan");
 
     const updated = await this.prisma.ulasanProdukEcom.update({
-      where: { id: reviewId },
+      where: { id_ulasanProduk: reviewId },
       data: { isHidden: true, statusLaporan: "TAKEDOWN_APPROVED" },
     });
 

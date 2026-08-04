@@ -66,7 +66,7 @@ export class GetTrenBulananQuery {
             updatedAt: { gte: startCurrent, lte: endCurrent },
           },
           select: {
-            id: true,
+            id_pesanan: true,
             totalHarga: true,
             item: {
               select: {

@@ -45,10 +45,8 @@ export class FindAllActivityLogsUseCase {
         take: limit,
         orderBy: { createdAt: "desc" },
         include: {
-          pengguna: {
-            select: {
-              id: true,
-              nama: true,
+          pengguna: { select: { id_pengguna: true,
+                nama: true,
               email: true,
               peran: true,
               profilPenjual: {

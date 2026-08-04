@@ -12,7 +12,7 @@ export class SellerConfirmOrderUseCase {
 
   async execute(pesananId: string) {
     const pesanan = await this.ordersRepo.findUnique({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
     });
 
     if (!pesanan) {
@@ -26,7 +26,7 @@ export class SellerConfirmOrderUseCase {
     }
 
     const updated = await this.ordersRepo.update({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
       data: { status: StatusPesananEcom.DITUTUP },
     });
 

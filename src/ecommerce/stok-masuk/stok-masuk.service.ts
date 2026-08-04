@@ -79,7 +79,7 @@ export class StokMasukService {
   async processStockInFromPengajuan(
     pengajuanStokId: string,
     items: Array<{
-      id: string;
+      id_itemPengajuan: string;
       produkEcomId: string;
       jumlahDisetujui: number;
       hargaGudang: number;

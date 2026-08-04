@@ -135,9 +135,9 @@ export class CreateSellerWithCourierUseCase {
                   deskripsiToko: data.storeDescription || "",
                   status: "PENDING",
                   kurir: newCourier
-                    ? { connect: { id: newCourier.id } }
+                    ? { connect: { id_pengguna: newCourier.id_pengguna } }
                     : data.courierUserId
-                      ? { connect: { id: data.courierUserId } }
+                      ? { connect: { id_pengguna: data.courierUserId } }
                       : undefined,
                 },
               }
@@ -148,7 +148,7 @@ export class CreateSellerWithCourierUseCase {
     // Create Toko record linked to ProfilPenjual with store details + coordinates
     if (peran === "PENJUAL") {
       const profil = await this.prisma.profilPenjual.findUnique({
-        where: { penggunaId: newUser.id },
+        where: { penggunaId: newUser.id_pengguna },
       });
       if (profil) {
         const storeName = data.storeName || nama;
@@ -165,7 +165,7 @@ export class CreateSellerWithCourierUseCase {
 
         await this.prisma.toko.create({
           data: {
-            penjualId: profil.id,
+            penjualId: profil.id_profilPenjual,
             nama: storeName,
             slug: storeSlug,
             kabupaten: data.storeCity || data.kabupaten || "",
@@ -188,7 +188,7 @@ export class CreateSellerWithCourierUseCase {
         kategori: "MANAJEMEN_AKUN",
         aksi: "BUAT_AKUN_KURIR",
         deskripsi: `Admin membuat akun Kurir terafiliasi baru: ${newCourier.nama} (${newCourier.email})`,
-        metadata: { courierId: newCourier.id },
+        metadata: { courierId: newCourier.id_pengguna },
       });
     }
 
@@ -197,7 +197,7 @@ export class CreateSellerWithCourierUseCase {
       kategori: "MANAJEMEN_AKUN",
       aksi: "BUAT_AKUN_PENJUAL",
       deskripsi: `Admin membuat akun Penjual baru: ${newUser.nama} (${newUser.email})`,
-      metadata: { sellerId: newUser.id },
+      metadata: { sellerId: newUser.id_pengguna },
     });
 
     // Send Welcome & Verification Email for Seller

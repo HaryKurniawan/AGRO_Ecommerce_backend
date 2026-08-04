@@ -20,7 +20,7 @@ export class GetStockHistoryUseCase {
         take: limit,
         orderBy: { createdAt: "desc" },
         include: {
-          pengguna: { select: { id: true, nama: true, peran: true } },
+          pengguna: { select: { id_pengguna: true, nama: true, peran: true } },
         },
       }),
       this.productsRepo.countStockHistory({

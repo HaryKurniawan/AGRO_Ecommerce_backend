@@ -18,11 +18,11 @@ export class FindProductsByStoreUseCase {
         take: limit,
         orderBy: { createdAt: "desc" },
         include: {
-          kategori: { select: { id: true, nama: true } },
-          toko: { select: { id: true, nama: true } },
+          kategori: { select: { id_kategoriToko: true, nama: true } },
+          toko: { select: { id_toko: true, nama: true } },
           masterProduk: {
             select: {
-              id: true,
+              id_masterProduk: true,
               nama: true,
               allowCustomName: true,
               namaWajibMengandung: true,
@@ -33,6 +33,15 @@ export class FindProductsByStoreUseCase {
       }),
       this.productsRepo.count({ where }),
     ]);
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+
+    const mappedData = data.map((p: any) => {
+      p.id = p.id_produk;
+      if (p.varian) {
+        p.varian = p.varian.map((v: any) => ({ ...v, id: v.id_varianKemasan }));
+      }
+      return p;
+    });
+
+    return { data: mappedData, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 }

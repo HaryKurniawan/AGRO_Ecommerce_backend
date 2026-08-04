@@ -53,7 +53,7 @@ export class AutoConfirmOrderService implements OnModuleInit, OnModuleDestroy {
           },
         },
         select: {
-          id: true,
+          id_pesanan: true,
           status: true,
           pengiriman: {
             select: {
@@ -73,12 +73,12 @@ export class AutoConfirmOrderService implements OnModuleInit, OnModuleDestroy {
 
       for (const order of ordersToConfirm) {
         await this.prisma.pesananEcom.update({
-          where: { id: order.id },
+          where: { id_pesanan: order.id_pesanan },
           data: { status: "SELESAI" },
         });
 
         this.logger.log(
-          `Auto-confirmed order ${order.id} (Arrived at: ${order.pengiriman?.updatedAt.toISOString()})`,
+          `Auto-confirmed order ${order.id_pesanan} (Arrived at: ${order.pengiriman?.updatedAt.toISOString()})`,
         );
       }
     } catch (error) {

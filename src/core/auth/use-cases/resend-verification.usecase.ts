@@ -31,8 +31,7 @@ export class ResendVerificationUseCase {
 
     const verifyToken = randomBytes(32).toString("hex");
 
-    await this.prisma.pengguna.update({
-      where: { id: pengguna.id },
+    await this.prisma.pengguna.update({ where: { id_pengguna: pengguna.id_pengguna },
       data: {
         tokenVerifikasiEmail: verifyToken,
         kadaluarsaTokenEmail: new Date(Date.now() + 86400 * 1000), // 24 hours

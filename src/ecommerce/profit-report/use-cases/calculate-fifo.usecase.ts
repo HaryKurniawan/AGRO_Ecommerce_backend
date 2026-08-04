@@ -51,7 +51,7 @@ export class CalculateFifoUseCase {
       const hargaBeliFromBatch = qtyFromBatch * batch.hargaBeli;
 
       batchAllocations.push({
-        batchId: batch.id,
+        batchId: batch.id_stokMasuk,
         jumlahDigunakan: qtyFromBatch,
         hargaBeli: batch.hargaBeli,
         totalHargaBeli: hargaBeliFromBatch,

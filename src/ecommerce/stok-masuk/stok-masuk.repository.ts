@@ -55,7 +55,7 @@ export class StokMasukRepository {
       include: {
         pengajuanStok: {
           select: {
-            id: true,
+            id_pengajuanStok: true,
             createdAt: true,
           }
         },
@@ -72,7 +72,7 @@ export class StokMasukRepository {
     newQty: number,
   ): Promise<StokMasukProduk> {
     return this.prisma.stokMasukProduk.update({
-      where: { id: batchId },
+      where: { id_stokMasuk: batchId },
       data: { jumlahTersisa: newQty },
     });
   }
@@ -82,7 +82,7 @@ export class StokMasukRepository {
     tanggalKadaluarsa: Date | null,
   ): Promise<StokMasukProduk> {
     return this.prisma.stokMasukProduk.update({
-      where: { id: batchId },
+      where: { id_stokMasuk: batchId },
       data: { tanggalKadaluarsa },
     });
   }
@@ -93,7 +93,7 @@ export class StokMasukRepository {
     qty: number,
   ): Promise<StokMasukProduk> {
     return this.prisma.stokMasukProduk.update({
-      where: { id: batchId },
+      where: { id_stokMasuk: batchId },
       data: {
         jumlahTersisa: {
           increment: qty,
@@ -107,7 +107,7 @@ export class StokMasukRepository {
     qty: number,
   ): Promise<StokMasukProduk> {
     return this.prisma.stokMasukProduk.update({
-      where: { id: batchId },
+      where: { id_stokMasuk: batchId },
       data: {
         jumlahTersisa: {
           decrement: qty,
@@ -118,7 +118,7 @@ export class StokMasukRepository {
 
   async findById(id: string): Promise<StokMasukProduk | null> {
     return this.prisma.stokMasukProduk.findUnique({
-      where: { id },
+      where: { id_stokMasuk: id },
     });
   }
 

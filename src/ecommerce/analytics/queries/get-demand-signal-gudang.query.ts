@@ -44,8 +44,8 @@ export class GetDemandSignalGudangQuery {
 
     // Fallback: Jika gudang belum memiliki toko afiliasi, gunakan data dari seluruh pasar (Semua Toko)
     if (tokoIds.length === 0) {
-      const allToko = await this.prisma.toko.findMany({ select: { id: true } });
-      tokoIds = allToko.map((t) => t.id);
+      const allToko = await this.prisma.toko.findMany({ select: { id_toko: true } });
+      tokoIds = allToko.map((t) => t.id_toko);
     }
 
     if (tokoIds.length === 0) {
@@ -65,7 +65,7 @@ export class GetDemandSignalGudangQuery {
           statusPesanan: { in: ["SELESAI", "DITUTUP"] as any },
           tanggalTransaksi: { gte: currentRange.gte, lte: currentRange.lte },
         },
-        select: { produkId: true, jumlahTerjual: true, hargaJual: true, id: true },
+        select: { produkId: true, jumlahTerjual: true, hargaJual: true, id_transaksiKeuntungan: true },
       }),
       this.prisma.transaksiKeuntungan.findMany({
         where: {
@@ -108,14 +108,13 @@ export class GetDemandSignalGudangQuery {
 
     const produkIds = aggCurrent.map((a) => a.produkId);
     const produks = await this.prisma.produkEcom.findMany({
-      where: { id: { in: produkIds } },
-      select: {
-        id: true,
+      where: { id_produk: { in: produkIds } },
+      select: { id_produk: true,
         tokoId: true,
         nama: true,
         namaEtalase: true,
         masterProdukId: true,
-        masterProduk: { select: { id: true, nama: true } },
+        masterProduk: { select: { id_masterProduk: true, nama: true } },
       },
     });
 

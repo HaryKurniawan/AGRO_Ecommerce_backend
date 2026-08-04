@@ -22,8 +22,8 @@ export class AdminGetAllReviewsUseCase {
       this.prisma.ulasanProdukEcom.findMany({
         where,
         include: {
-          pengguna: { select: { id: true, nama: true } },
-          produk: { select: { id: true, nama: true, gambarUrl: true } },
+          pengguna: { select: { id_pengguna: true, nama: true } },
+          produk: { select: { id_produk: true, nama: true, gambarUrl: true } },
         },
         orderBy: { createdAt: "desc" },
         skip,

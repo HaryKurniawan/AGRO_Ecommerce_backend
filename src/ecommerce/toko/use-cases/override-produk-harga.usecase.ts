@@ -15,7 +15,7 @@ export class OverrideProdukHargaUseCase {
     diubahOlehPeran: "SELLER" | "ADMIN";
   }) {
     const product = await this.prisma.produkEcom.findFirst({
-      where: { id: data.produkId, tokoId: data.tokoId },
+      where: { id_produk: data.produkId, tokoId: data.tokoId },
     });
 
     if (!product) {
@@ -65,14 +65,14 @@ export class OverrideProdukHargaUseCase {
     }
 
     const updatedProduct = await this.prisma.produkEcom.update({
-      where: { id: data.produkId },
+      where: { id_produk: data.produkId },
       data: updateData,
     });
 
     if (updateData.harga !== undefined) {
       await this.prisma.riwayatStokProduk.create({
         data: {
-          produkId: product.id,
+          produkId: product.id_produk,
           penggunaId: data.diubahOlehId,
           tipe: "ADJUSTMENT",
           kuantitas: 0,
@@ -90,7 +90,7 @@ export class OverrideProdukHargaUseCase {
       await this.prisma.riwayatMargin.create({
         data: {
           tokoId: data.tokoId,
-          produkId: product.id,
+          produkId: product.id_produk,
           marginLama: product.marginPersen,
           marginBaru: activeMargin,
           diubahOlehPeran: data.diubahOlehPeran,

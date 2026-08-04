@@ -13,7 +13,7 @@ export class UpdateProductUseCase {
 
   async execute(id: string, data: Record<string, unknown>, penggunaId?: string) {
     const product = await this.productsRepo.findUnique({
-      where: { id },
+      where: { id_produk: id },
       include: {
         masterProduk: true,
       },
@@ -67,7 +67,7 @@ export class UpdateProductUseCase {
     }
 
     const updated = await this.productsRepo.update({
-      where: { id },
+      where: { id_produk: id },
       data: safeData,
     });
 

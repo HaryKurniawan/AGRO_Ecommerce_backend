@@ -12,12 +12,12 @@ export class GetOrderReviewStatusUseCase {
 
   async execute(pesananId: string, penggunaId: string) {
     const pesanan = await this.prisma.pesananEcom.findUnique({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
       include: {
         item: {
           include: {
             produk: {
-              select: { id: true, nama: true, gambarUrl: true, harga: true },
+              select: { id_produk: true, nama: true, gambarUrl: true, harga: true },
             },
             ulasan: true,
           },
@@ -30,7 +30,7 @@ export class GetOrderReviewStatusUseCase {
       throw new ForbiddenException("Anda tidak memiliki akses ke pesanan ini");
 
     return pesanan.item.map((item) => ({
-      orderItemId: item.id,
+      orderItemId: item.id_itemPesanan,
       produkId: item.produkId,
       productNama: item.produk.nama,
       productFoto: item.produk.gambarUrl,

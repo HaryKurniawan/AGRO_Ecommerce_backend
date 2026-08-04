@@ -7,8 +7,7 @@ export class GetTokoPricingSummaryUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(tokoId: string) {
-    const store = await this.prisma.toko.findUnique({
-      where: { id: tokoId },
+    const store = await this.prisma.toko.findUnique({ where: { id_toko: tokoId },
     });
     if (!store) {
       throw new BadRequestException("Toko tidak ditemukan");
@@ -34,7 +33,7 @@ export class GetTokoPricingSummaryUseCase {
       const profitPerKg = p.harga - hpp;
 
       return {
-        id: p.id,
+        id: p.id_produk,
         nama: p.nama,
         stok: p.stok,
         satuan: p.satuan,

@@ -35,7 +35,7 @@ export class KonfirmasiPesananGrosirUseCase {
     },
   ) {
     const pesanan = await this.ordersRepo.findUnique({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
       include: { item: { include: { produk: true } } },
     });
 
@@ -57,7 +57,7 @@ export class KonfirmasiPesananGrosirUseCase {
     // DITOLAK → batalkan pesanan
     if (!data.terima) {
       return this.ordersRepo.update({
-        where: { id: pesananId },
+        where: { id_pesanan: pesananId },
         data: {
           status: "DIBATALKAN",
           catatan: data.catatanSeller
@@ -69,7 +69,7 @@ export class KonfirmasiPesananGrosirUseCase {
 
     // DITERIMA → cari toko dan gudang terafiliasi
     const productData = await this.productsRepo.findUnique({
-      where: { id: produkId },
+      where: { id_produk: produkId },
       select: { tokoId: true },
     });
 
@@ -78,7 +78,7 @@ export class KonfirmasiPesananGrosirUseCase {
       throw new BadRequestException("Toko tidak ditemukan untuk produk ini");
     }
 
-    const toko = await this.tokosRepo.findUnique({ where: { id: tokoId } });
+    const toko = await this.tokosRepo.findUnique({ where: { id_toko: tokoId } });
     if (!toko) {
       throw new BadRequestException("Toko tidak ditemukan");
     }
@@ -101,8 +101,7 @@ export class KonfirmasiPesananGrosirUseCase {
 
     if (isOnlinePayment) {
       try {
-        const konsumen = await this.prisma.pengguna.findUnique({
-          where: { id: pesanan.konsumenId },
+        const konsumen = await this.prisma.pengguna.findUnique({ where: { id_pengguna: pesanan.konsumenId },
           select: { nama: true, email: true, noTelepon: true },
         });
 
@@ -115,7 +114,7 @@ export class KonfirmasiPesananGrosirUseCase {
 
         if (ongkir > 0) {
           itemDetails.push({
-            id: `ONGKIR-${pesanan.id}`,
+            id: `ONGKIR-${pesanan.id_pesanan}`,
             price: ongkir,
             quantity: 1,
             name: "Ongkos Kirim",
@@ -124,14 +123,14 @@ export class KonfirmasiPesananGrosirUseCase {
 
         if (pesanan.metodeBayar?.toUpperCase() === "QRIS") {
           const qrisTx = await this.xenditService.createQRIS({
-            referenceId: pesanan.id,
+            referenceId: pesanan.id_pesanan,
             amount: totalHarga,
           });
           paymentId = qrisTx.id;
           paymentUrl = qrisTx.qrString;
         } else {
           const invoiceTx = await this.xenditService.createInvoice({
-            externalId: pesanan.id,
+            externalId: pesanan.id_pesanan,
             amount: totalHarga,
             payerEmail: konsumen?.email,
             customerName: konsumen?.nama,
@@ -155,7 +154,7 @@ export class KonfirmasiPesananGrosirUseCase {
 
     // Update pesanan → MENUNGGU_BAYAR (customer dapat invoice)
     const updated = await this.ordersRepo.update({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
       data: {
         status: "MENUNGGU_BAYAR",
         diprosesOleh: "TOKO",

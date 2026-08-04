@@ -11,8 +11,7 @@ export class UpdateProfileUseCase {
     penggunaId: string,
     data: { nama?: string; noTelepon?: string },
   ) {
-    const existing = await this.prisma.pengguna.findUnique({
-      where: { id: penggunaId },
+    const existing = await this.prisma.pengguna.findUnique({ where: { id_pengguna: penggunaId },
       select: { noTelepon: true },
     });
 
@@ -24,8 +23,7 @@ export class UpdateProfileUseCase {
       data.noTelepon !== undefined &&
       data.noTelepon !== existing.noTelepon;
 
-    const updated = await this.prisma.pengguna.update({
-      where: { id: penggunaId },
+    const updated = await this.prisma.pengguna.update({ where: { id_pengguna: penggunaId },
       data: {
         ...(data.nama && { nama: data.nama }),
         ...(data.noTelepon !== undefined && {

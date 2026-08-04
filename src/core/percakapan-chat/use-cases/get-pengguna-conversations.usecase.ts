@@ -57,14 +57,14 @@ export class GetUserConversationsUseCase {
     const [pengguna, toko] = await Promise.all([
       userIds.size > 0
         ? this.chatRepo.findManyUsers({
-            where: { id: { in: Array.from(userIds) } },
-            select: { id: true, nama: true },
+            where: { id_pengguna: { in: Array.from(userIds) } },
+            select: { id_pengguna: true, nama: true },
           })
         : Promise.resolve([]),
       storeIds.size > 0
         ? this.chatRepo.findManyStores({
-            where: { id: { in: Array.from(storeIds) } },
-            select: { id: true, nama: true, fotoUrl: true },
+            where: { id_toko: { in: Array.from(storeIds) } },
+            select: { id_toko: true, nama: true, fotoUrl: true },
           })
         : Promise.resolve([]),
     ]);

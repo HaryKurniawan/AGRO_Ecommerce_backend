@@ -39,7 +39,7 @@ export class FindMyStoreUseCase {
         throw new NotFoundException("Seller profile not found");
 
       toko = await this.storesRepo.findUnique({
-        where: { penjualId: (profilPenjual as any).id },
+        where: { penjualId: profilPenjual.id_profilPenjual },
         include: {
           produk: { orderBy: { createdAt: "desc" }, take: 20 },
           kurirStaffs: true,
@@ -68,6 +68,7 @@ export class FindMyStoreUseCase {
 
     return {
       ...toko,
+      id: toko.id_toko,
       courierStaff,
     };
   }

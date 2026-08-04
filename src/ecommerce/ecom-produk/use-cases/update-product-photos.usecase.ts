@@ -20,7 +20,7 @@ export class UpdateProductPhotosUseCase {
 
     // Check if product exists
     const produk = await this.prisma.produkEcom.findUnique({
-      where: { id: produkId },
+      where: { id_produk: produkId },
     });
 
     if (!produk) {
@@ -33,13 +33,13 @@ export class UpdateProductPhotosUseCase {
     const fotoLainnya = fotoUrls.slice(1);
 
     const updated = await this.prisma.produkEcom.update({
-      where: { id: produkId },
+      where: { id_produk: produkId },
       data: {
         gambarUrl,
         fotoLainnya,
       },
       select: {
-        id: true,
+        id_produk: true,
         nama: true,
         gambarUrl: true,
         fotoLainnya: true,

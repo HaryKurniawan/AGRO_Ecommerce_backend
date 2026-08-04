@@ -13,7 +13,7 @@ export class FindProfitTransactionsByProductQuery {
     filters: ProfitReportFiltersDto,
   ): Promise<{
     transactions: (TransaksiKeuntungan & {
-      pesanan: { id: string };
+      pesanan: { id_pesanan: string };
       batchDetails: (TransaksiKeuntunganBatch & {
         stokMasuk: { tanggalMasuk: Date };
       })[];
@@ -43,8 +43,7 @@ export class FindProfitTransactionsByProductQuery {
       this.prisma.transaksiKeuntungan.findMany({
         where,
         include: {
-          pesanan: {
-            select: { id: true },
+          pesanan: { select: { id_pesanan: true },
           },
           batchDetails: {
             include: {

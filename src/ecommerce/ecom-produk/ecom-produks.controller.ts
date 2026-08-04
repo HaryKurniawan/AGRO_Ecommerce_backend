@@ -253,10 +253,11 @@ export class EcomProductsController {
   @Get(":produkId/varian")
   @ApiOperation({ summary: "Get all packaging variants of a product" })
   async getVarians(@Param("produkId") produkId: string) {
-    return this.productsRepo.findManyVarian({
+    const varians = await this.productsRepo.findManyVarian({
       where: { produkId },
       orderBy: { ukuranKg: "asc" },
     });
+    return varians.map((v: any) => ({ ...v, id: v.id_varianKemasan }));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -268,7 +269,7 @@ export class EcomProductsController {
     @Body() payload: { biayaTambahan?: number; isActive?: boolean },
   ) {
     return this.productsRepo.updateVarian({
-      where: { id },
+      where: { id_varianKemasan: id },
       data: {
         biayaTambahan:
           payload.biayaTambahan !== undefined

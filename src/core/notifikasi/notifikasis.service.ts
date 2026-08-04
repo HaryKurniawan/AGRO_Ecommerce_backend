@@ -95,13 +95,13 @@ export class NotificationsService {
 
   async createBroadcast(dto: BroadcastNotifDto) {
     const { judul, pesan, target, data: payloadData } = dto;
-    let targetUsers: { id: string }[] = [];
+    let targetUsers: { id_pengguna: string }[] = [];
 
     // Parse target
     if (target === 'ALL_USER') {
       targetUsers = await this.prisma.pengguna.findMany({
         where: { peran: 'KONSUMEN' },
-        select: { id: true },
+        select: { id_pengguna: true },
       });
     } else if (target === 'ALL_OPERASIONAL') {
       targetUsers = await this.prisma.pengguna.findMany({
@@ -110,17 +110,17 @@ export class NotificationsService {
             in: ['PENJUAL', 'KURIR', 'ADMIN_CS', 'SUPER_ADMIN'],
           },
         },
-        select: { id: true },
+        select: { id_pengguna: true },
       });
     } else if (target.startsWith('ROLE:')) {
       const role = target.replace('ROLE:', '') as Peran;
       targetUsers = await this.prisma.pengguna.findMany({
         where: { peran: role },
-        select: { id: true },
+        select: { id_pengguna: true },
       });
     } else if (target.startsWith('USER:')) {
       const userId = target.replace('USER:', '');
-      targetUsers = [{ id: userId }];
+      targetUsers = [{ id_pengguna: userId }];
     }
 
     if (targetUsers.length === 0) {
@@ -128,7 +128,7 @@ export class NotificationsService {
     }
 
     const batchedData = targetUsers.map((u) => ({
-      penggunaId: u.id,
+      penggunaId: u.id_pengguna,
       judul,
       pesan,
       tipe: TipeNotifikasi.BROADCAST,
@@ -147,7 +147,7 @@ export class NotificationsService {
       createdAt: new Date(),
     };
 
-    const userIds = targetUsers.map((u) => u.id);
+    const userIds = targetUsers.map((u) => u.id_pengguna);
     this.sseService.emitToUsers(userIds, ssePayload);
 
     return { sent: userIds.length };

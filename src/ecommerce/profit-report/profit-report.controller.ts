@@ -44,7 +44,7 @@ export class ProfitReportController {
   ) {
     // Verify product exists and user is the owner
     const product = await this.prisma.produkEcom.findUnique({
-      where: { id: produkId },
+      where: { id_produk: produkId },
       include: { toko: { include: { penjual: true } } },
     });
 
@@ -55,7 +55,7 @@ export class ProfitReportController {
     // Check authorization: only seller owner or admin can access
     if (
       user.peran === "SELLER" &&
-      product.toko.penjual.penggunaId !== user.id
+      product.toko.penjual.penggunaId !== user.id_pengguna
     ) {
       throw new ForbiddenException(
         "Anda tidak memiliki akses ke laporan keuntungan produk ini",
@@ -80,8 +80,7 @@ export class ProfitReportController {
     @CurrentUser() user: any,
   ) {
     // Verify store exists and user is the owner
-    const toko = await this.prisma.toko.findUnique({
-      where: { id: tokoId },
+    const toko = await this.prisma.toko.findUnique({ where: { id_toko: tokoId },
       include: { penjual: true },
     });
 
@@ -90,7 +89,7 @@ export class ProfitReportController {
     }
 
     // Check authorization: only seller owner or admin can access
-    if (user.peran === "SELLER" && toko.penjual.penggunaId !== user.id) {
+    if (user.peran === "SELLER" && toko.penjual.penggunaId !== user.id_pengguna) {
       throw new ForbiddenException(
         "Anda tidak memiliki akses ke laporan keuntungan toko ini",
       );

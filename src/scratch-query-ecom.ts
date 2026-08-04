@@ -11,7 +11,7 @@ const prisma = new PrismaClient({
 async function main() {
   const requests = await prisma.pengajuanStokToko.findMany({
     select: {
-      id: true,
+      id_pengajuanStok: true,
       gudangId: true,
       tokoId: true,
       status: true,

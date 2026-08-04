@@ -8,6 +8,7 @@ import {
 import { PesananEcomsRepository } from "../repositories/ecom-pesanans.repository";
 import { ProdukEcomsRepository } from "../../ecom-produk/repositories/ecom-produks.repository";
 import { PrismaService } from "../../../infrastructure/database/prisma.service";
+import { IdGenerator } from "../../utils/id-generator.util";
 
 export interface CreatePesananGrosirDto {
   item: { produkId: string; jumlah: number; harga: number }[];
@@ -37,8 +38,7 @@ export class CreatePesananGrosirUseCase {
       );
     }
 
-    const pengguna = await this.prisma.pengguna.findUnique({
-      where: { id: penggunaId },
+    const pengguna = await this.prisma.pengguna.findUnique({ where: { id_pengguna: penggunaId },
       select: { noTeleponTerverifikasiPada: true, peran: true }
     });
 
@@ -64,7 +64,7 @@ export class CreatePesananGrosirUseCase {
     // Grosir assumes 1 store per order for simplicity in this implementation
     const produkId = item[0].produkId;
     const produk = await this.productsRepo.findUnique({
-      where: { id: produkId },
+      where: { id_produk: produkId },
     });
 
     if (!produk) {
@@ -144,8 +144,17 @@ export class CreatePesananGrosirUseCase {
 
     // Create the order with status MENUNGGU_KONFIRMASI_SELLER
     console.log("PACKAGING SPECS RECEIVED:", JSON.stringify(data.packagingSpecs));
+    
+    const currentOrderCount = await this.prisma.pesananEcom.count({});
+    const storeInfo2 = await this.prisma.toko.findUnique({
+      where: { id_toko: produk.tokoId },
+      select: { kodeToko: true }
+    });
+    const nomorInvoice = IdGenerator.generateInvoiceNumber(storeInfo2?.kodeToko || "TKO", currentOrderCount + 1);
+
     const pesanan = await this.ordersRepo.create({
       data: {
+        id_pesanan: nomorInvoice,
         konsumenId: penggunaId,
         tokoId: produk.tokoId,
         status: "MENUNGGU_KONFIRMASI_SELLER",

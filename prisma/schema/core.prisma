@@ -2,7 +2,7 @@
 // PostgreSQL Schema: "core"
 
 model Pengguna {
-  id                         String    @id @default(uuid())
+  id_pengguna                String    @id @default(uuid())
   email                      String    @unique
   kataSandi                  String
   nama                       String?
@@ -32,7 +32,7 @@ model Pengguna {
   productReviews UlasanProdukEcom[]
 
   kurirTokoId        String?
-  kurirToko          Toko?          @relation("StoreCouriers", fields: [kurirTokoId], references: [id])
+  kurirToko          Toko?          @relation("StoreCouriers", fields: [kurirTokoId], references: [id_toko])
   logAktivitas       LogAktivitas[]
   profilPenjualKurir ProfilPenjual? @relation("ProfilPenjualKurir")
 
@@ -55,7 +55,7 @@ enum Peran {
 // ─── Profil Penjual ──────────────────────────────────────────────────────────
 
 model ProfilPenjual {
-  id                String        @id @default(uuid())
+  id_profilPenjual  String        @id @default(uuid())
   penggunaId        String        @unique
   namaToko          String
   slugToko          String        @unique
@@ -72,10 +72,10 @@ model ProfilPenjual {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  pengguna Pengguna  @relation(fields: [penggunaId], references: [id], onDelete: Cascade)
+  pengguna Pengguna  @relation(fields: [penggunaId], references: [id_pengguna], onDelete: Cascade)
   toko     Toko?
   kurirId  String?   @unique
-  kurir    Pengguna? @relation("ProfilPenjualKurir", fields: [kurirId], references: [id], onDelete: SetNull)
+  kurir    Pengguna? @relation("ProfilPenjualKurir", fields: [kurirId], references: [id_pengguna], onDelete: SetNull)
 
   @@map("profil_penjual")
   @@schema("core")
@@ -147,7 +147,7 @@ model LogAktivitas {
   metadata   Json?
   createdAt  DateTime @default(now())
 
-  pengguna Pengguna? @relation(fields: [penggunaId], references: [id], onDelete: SetNull)
+  pengguna Pengguna? @relation(fields: [penggunaId], references: [id_pengguna], onDelete: SetNull)
 
   @@map("log_aktivitas")
   @@schema("core")

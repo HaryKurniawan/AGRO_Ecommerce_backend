@@ -12,8 +12,8 @@ export class GetAllCouriersUseCase {
         peran: Peran.KURIR,
       },
       select: {
-        id: true,
-        nama: true,
+                id_pengguna: true,
+                nama: true,
         email: true,
         noTelepon: true,
       },

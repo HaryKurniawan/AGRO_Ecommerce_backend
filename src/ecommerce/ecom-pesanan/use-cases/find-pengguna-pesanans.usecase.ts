@@ -22,7 +22,7 @@ export class FindUserOrdersUseCase {
             include: {
               produk: {
                 include: {
-                  toko: { select: { id: true, nama: true, fotoUrl: true } },
+                  toko: { select: { id_toko: true, nama: true, fotoUrl: true } },
                 },
               },
             },
@@ -39,7 +39,7 @@ export class FindUserOrdersUseCase {
         const expiry = new Date(pesanan.createdAt).getTime() + 1 * 60 * 60 * 1000;
         if (now > expiry) {
           await this.ordersRepo.update({
-            where: { id: pesanan.id },
+            where: { id_pesanan: pesanan.id_pesanan },
             data: { status: "DIBATALKAN", catatan: "Dibatalkan otomatis karena batas waktu pembayaran habis" },
           });
           pesanan.status = "DIBATALKAN" as any;

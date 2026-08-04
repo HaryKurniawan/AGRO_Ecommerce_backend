@@ -59,7 +59,7 @@ export class GetConversationMessagesUseCase {
         ? conversation.partisipanB
         : conversation.partisipanA;
     const otherUser = (await this.chatRepo.findUserById(otherUserId, {
-      id: true,
+      id_pengguna: true,
       nama: true,
       email: true,
       peran: true,

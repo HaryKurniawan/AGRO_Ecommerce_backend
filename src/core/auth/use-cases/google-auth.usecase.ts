@@ -48,8 +48,7 @@ export class GoogleAuthUseCase {
       });
     } else if (!pengguna.googleId) {
       // Jika ditemukan via email tapi belum punya googleId, link akun
-      pengguna = await this.prisma.pengguna.update({
-        where: { id: pengguna.id },
+      pengguna = await this.prisma.pengguna.update({ where: { id_pengguna: pengguna.id_pengguna },
         data: {
           googleId: profile.googleId,
           emailTerverifikasiPada: pengguna.emailTerverifikasiPada ?? new Date(),
@@ -58,7 +57,7 @@ export class GoogleAuthUseCase {
     }
 
     const accessToken = this.jwtService.sign({
-      sub: pengguna.id,
+      sub: pengguna.id_pengguna,
       email: pengguna.email,
       peran: pengguna.peran,
     });
@@ -66,7 +65,7 @@ export class GoogleAuthUseCase {
     return {
       accessToken,
       pengguna: {
-        id: pengguna.id,
+        id: pengguna.id_pengguna,
         email: pengguna.email,
         nama: pengguna.nama,
         peran: pengguna.peran,

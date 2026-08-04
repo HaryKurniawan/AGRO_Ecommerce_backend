@@ -9,7 +9,7 @@ export interface BatchDetailDto {
 }
 
 export interface ProfitTransactionDto {
-  id: string;
+  id_pesanan: string;
   tanggalTransaksi: string;
   nomorPesanan: string;
   pesananId: string;

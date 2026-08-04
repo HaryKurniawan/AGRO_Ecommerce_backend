@@ -19,6 +19,10 @@ export class PengajuanStokRepository {
     return this.prisma.pengajuanStokToko.findMany(args);
   }
 
+  async count(args?: Prisma.PengajuanStokTokoCountArgs) {
+    return this.prisma.pengajuanStokToko.count(args);
+  }
+
   async findFirst<T extends Prisma.PengajuanStokTokoFindFirstArgs>(
     args: Prisma.SelectSubset<T, Prisma.PengajuanStokTokoFindFirstArgs>,
   ) {

@@ -7,9 +7,9 @@ export class AdminUpdateStoreStatusUseCase {
   constructor(private readonly storesRepo: TokosRepository) {}
 
   async execute(id: string, status: "ACTIVE" | "INACTIVE" | "SUSPENDED") {
-    const toko = await this.storesRepo.findUnique({ where: { id } });
+    const toko = await this.storesRepo.findUnique({ where: { id_toko: id } });
     if (!toko) throw new NotFoundException("Toko not found");
 
-    return this.storesRepo.update({ where: { id }, data: { status } });
+    return this.storesRepo.update({ where: { id_toko: id }, data: { status } });
   }
 }

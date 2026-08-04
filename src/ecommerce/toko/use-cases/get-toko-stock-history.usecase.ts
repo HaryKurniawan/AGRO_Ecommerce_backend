@@ -17,7 +17,7 @@ export class GetTokoStockHistoryUseCase {
     }
 
     const toko = await this.tokosRepo.findUnique({
-      where: { penjualId: profil.id },
+      where: { penjualId: profil.id_profilPenjual },
     });
 
     if (!toko) {
@@ -27,7 +27,7 @@ export class GetTokoStockHistoryUseCase {
     const stokQuery = {
       where: {
         produk: {
-          tokoId: toko.id,
+          tokoId: toko.id_toko,
         },
       },
     };
@@ -41,13 +41,11 @@ export class GetTokoStockHistoryUseCase {
         take: limit,
         orderBy: { createdAt: "desc" },
         include: {
-          produk: { select: { id: true, nama: true, gambarUrl: true } },
-          pengguna: { select: { id: true, nama: true, peran: true } },
-          pesanan: {
-            select: {
-              id: true,
+          produk: { select: { id_produk: true, nama: true, gambarUrl: true } },
+          pengguna: { select: { id_pengguna: true, nama: true, peran: true } },
+          pesanan: { select: { id_pesanan: true,
               status: true,
-              konsumen: { select: { id: true, nama: true } },
+              konsumen: { select: { id_pengguna: true, nama: true } },
             },
           },
         },

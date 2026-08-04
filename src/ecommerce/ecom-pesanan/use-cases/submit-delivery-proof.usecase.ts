@@ -14,7 +14,7 @@ export class SubmitDeliveryProofUseCase {
   async execute(pesananId: string, payload: SubmitDeliveryProofDto) {
     // Validate pesanan exists
     const pesanan = await this.prisma.pesananEcom.findUnique({
-      where: { id: pesananId },
+      where: { id_pesanan: pesananId },
       include: { pengiriman: true },
     });
 

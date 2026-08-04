@@ -33,7 +33,7 @@ export class UpdatePengajuanStokStatusUseCase {
     },
   ) {
     const pengajuan = await this.stokRepo.findUnique({
-      where: { id: pengajuanId },
+      where: { id_pengajuanStok: pengajuanId },
       include: {
         items: true,
         toko: {
@@ -94,7 +94,7 @@ export class UpdatePengajuanStokStatusUseCase {
     await this.updateApprovedQuantities(pengajuan, data.itemUpdates);
 
     const updated = await this.stokRepo.update({
-      where: { id: pengajuanId },
+      where: { id_pengajuanStok: pengajuanId },
       data: {
         status: data.status,
         catatan: data.catatan,
@@ -144,7 +144,7 @@ export class UpdatePengajuanStokStatusUseCase {
   ) {
     for (const item of pengajuan.items) {
       const updatePayload = itemUpdates?.find(
-        (u) => u.itemId === item.id || u.produkGudangId === item.produkGudangId,
+        (u) => u.itemId === item.id_itemPengajuan || u.produkGudangId === item.produkGudangId,
       );
       // ✅ Prioritas: dari itemUpdates → jumlahDisetujui di item → jumlahPermintaan (fallback terakhir)
       const approvedQty =
@@ -233,7 +233,7 @@ export class UpdatePengajuanStokStatusUseCase {
               .replace(/\s+/g, "-")
               .replace(/[^a-z0-9-]/g, ""),
             deskripsi: `${fullName} berkualitas dari gudang`,
-            kategoriId: kategori.id,
+            kategoriId: kategori.id_kategoriToko,
             satuan: item.satuan || "kg",
             allowCustomName: true,
             namaWajibMengandung: item.namaProduk.split(" ")[0],
@@ -241,13 +241,13 @@ export class UpdatePengajuanStokStatusUseCase {
           },
         });
         console.log(
-          `[UpdatePengajuanStokStatus] MasterProduk auto-created: ${masterProduk.id}`,
+          `[UpdatePengajuanStokStatus] MasterProduk auto-created: ${masterProduk.id_masterProduk}`,
         );
       }
 
       mapping = await this.prisma.mappingProdukGudang.create({
         data: {
-          masterProdukId: masterProduk.id,
+          masterProdukId: masterProduk.id_masterProduk,
           produkGudangId: item.produkGudangId,
           gudangId: gudangId,
           gudangNama: "Gudang Utama",
@@ -279,11 +279,13 @@ export class UpdatePengajuanStokStatusUseCase {
           jumlahKemasan: Number(k.jumlahKemasan),
         })),
       );
-    } else if (item.ukuranKemasanKg && item.jumlahKemasan) {
-      packagesToProcess.push({
-        ukuranKg: Number(item.ukuranKemasanKg),
-        jumlahKemasan: Number(item.jumlahKemasan),
-      });
+    } else if (item.kemasanDetail && item.kemasanDetail.length > 0) {
+      packagesToProcess.push(
+        ...item.kemasanDetail.map((k: any) => ({
+          ukuranKg: Number(k.ukuranKg),
+          jumlahKemasan: Number(k.jumlahKemasan),
+        })),
+      );
     } else {
       packagesToProcess.push({
         ukuranKg: 1.0,
@@ -307,13 +309,13 @@ export class UpdatePengajuanStokStatusUseCase {
     }
 
     await this.prisma.itemPengajuanStokKemasan.deleteMany({
-      where: { itemPengajuanStokId: item.id },
+      where: { itemPengajuanStokId: item.id_itemPengajuan },
     });
 
     if (packagesToProcess.length > 0) {
       await this.prisma.itemPengajuanStokKemasan.createMany({
         data: packagesToProcess.map((pkg) => ({
-          itemPengajuanStokId: item.id,
+          itemPengajuanStokId: item.id_itemPengajuan,
           ukuranKg: pkg.ukuranKg,
           jumlahKemasan: pkg.jumlahKemasan,
         })),
@@ -323,7 +325,7 @@ export class UpdatePengajuanStokStatusUseCase {
     const existingProduct = await this.prisma.produkEcom.findFirst({
       where: {
         tokoId: pengajuan.tokoId,
-        masterProdukId: master.id,
+        masterProdukId: master.id_masterProduk,
       },
     });
 
@@ -338,9 +340,11 @@ export class UpdatePengajuanStokStatusUseCase {
       const newHarga = item.hargaGudang * (1 + currentMargin / 100);
 
       product = await this.prisma.produkEcom.update({
-        where: { id: existingProduct.id },
+        where: { id_produk: existingProduct.id_produk },
         data: {
           stok: newStok,
+          stokFisikKg: { increment: totalKgAdded },
+          stokTersediaKg: { increment: totalKgAdded },
           hargaBeli: item.hargaGudang,
           harga: newHarga,
           status: "ACTIVE",
@@ -348,17 +352,17 @@ export class UpdatePengajuanStokStatusUseCase {
       });
 
       console.log(
-        `[UpdatePengajuanStokStatus] Updated existing product ${product.id} (Toko: ${pengajuan.tokoId}) with ${totalKgAdded}kg new stock. New total: ${newStok}kg.`,
+        `[UpdatePengajuanStokStatus] Updated existing product ${product.id_produk} (Toko: ${pengajuan.tokoId}) with ${totalKgAdded}kg new stock. New total: ${newStok}kg.`,
       );
 
       await this.prisma.riwayatStokProduk.create({
         data: {
-          produkId: product.id,
+          produkId: product.id_produk,
           penggunaId: effectivePenggunaId,
           tipe: "IN",
           kuantitas: Math.round(totalKgAdded),
           stokAkhir: newStok,
-          catatan: `Stok masuk dari pengajuan ${pengajuan.id} - ${item.namaProduk} (${totalKgAdded} Kg)`,
+          catatan: `Stok masuk dari pengajuan ${pengajuan.id_pengajuanStok} - ${item.namaProduk} (${totalKgAdded} Kg)`,
         },
       });
     } else {
@@ -368,14 +372,15 @@ export class UpdatePengajuanStokStatusUseCase {
         data: {
           tokoId: pengajuan.tokoId,
           kategoriId: master.kategoriId,
-          masterProdukId: master.id,
-          produkGudangId: item.produkGudangId,
+          masterProdukId: master.id_masterProduk,
           nama: master.nama,
           namaEtalase: null,
           deskripsi: master.deskripsi,
           satuan: master.satuan,
           beratGram: master.beratGram,
           stok: totalKgAdded,
+          stokFisikKg: totalKgAdded,
+          stokTersediaKg: totalKgAdded,
           gambarUrl: master.gambarUrl,
           fotoLainnya: master.fotoLainnya,
           nutrisi: master.nutrisi,
@@ -388,17 +393,17 @@ export class UpdatePengajuanStokStatusUseCase {
       });
 
       console.log(
-        `[UpdatePengajuanStokStatus] Auto-created new standardized product ${product.id} with initial stock: ${totalKgAdded}kg.`,
+        `[UpdatePengajuanStokStatus] Auto-created new standardized product ${product.id_produk} with initial stock: ${totalKgAdded}kg.`,
       );
 
       await this.prisma.riwayatStokProduk.create({
         data: {
-          produkId: product.id,
+          produkId: product.id_produk,
           penggunaId: effectivePenggunaId,
           tipe: "IN",
           kuantitas: Math.round(totalKgAdded),
           stokAkhir: Math.round(totalKgAdded),
-          catatan: `Produk baru dari pengajuan ${pengajuan.id} - ${item.namaProduk} (${totalKgAdded} Kg)`,
+          catatan: `Produk baru dari pengajuan ${pengajuan.id_pengajuanStok} - ${item.namaProduk} (${totalKgAdded} Kg)`,
         },
       });
     }
@@ -407,12 +412,12 @@ export class UpdatePengajuanStokStatusUseCase {
       await this.prisma.varianKemasan.upsert({
         where: {
           produkId_ukuranKg: {
-            produkId: product.id,
+            produkId: product.id_produk,
             ukuranKg: pkg.ukuranKg,
           },
         },
         create: {
-          produkId: product.id,
+          produkId: product.id_produk,
           ukuranKg: pkg.ukuranKg,
           biayaTambahan: 0, // Default no extra packaging fee
           stokKemasan: pkg.jumlahKemasan,
@@ -424,24 +429,6 @@ export class UpdatePengajuanStokStatusUseCase {
       });
     }
 
-    await this.productsRepo.upsertInventory({
-      where: {
-        tokoId_produkId: {
-          tokoId: pengajuan.tokoId,
-          produkId: product.id,
-        },
-      },
-      create: {
-        tokoId: pengajuan.tokoId,
-        produkId: product.id,
-        stokTersediaKg: totalKgAdded,
-        stokFisikKg: totalKgAdded,
-      },
-      update: {
-        stokTersediaKg: { increment: totalKgAdded },
-        stokFisikKg: { increment: totalKgAdded },
-      },
-    });
   }
 
   private async createFifoBatches(
@@ -449,11 +436,11 @@ export class UpdatePengajuanStokStatusUseCase {
     itemUpdates: any[] | undefined,
   ) {
     console.log(
-      `[UpdatePengajuanStokStatus] Creating FIFO stock batches for pengajuan ${pengajuan.id}`,
+      `[UpdatePengajuanStokStatus] Creating FIFO stock batches for pengajuan ${pengajuan.id_pengajuanStok}`,
     );
 
     const stokMasukItems: Array<{
-      id: string;
+      id_itemPengajuan: string;
       produkEcomId: string;
       jumlahDisetujui: number;
       hargaGudang: number;
@@ -463,7 +450,7 @@ export class UpdatePengajuanStokStatusUseCase {
 
     for (const item of pengajuan.items) {
       const updatePayload = itemUpdates?.find(
-        (u) => u.itemId === item.id || u.produkGudangId === item.produkGudangId,
+        (u) => u.itemId === item.id_itemPengajuan || u.produkGudangId === item.produkGudangId,
       );
 
       let produkEcomId = "";
@@ -483,7 +470,7 @@ export class UpdatePengajuanStokStatusUseCase {
           },
         });
         if (product) {
-          produkEcomId = product.id;
+          produkEcomId = product.id_produk;
           estimasiSegarHari = product.estimasiSegarHari;
         }
       }
@@ -502,11 +489,13 @@ export class UpdatePengajuanStokStatusUseCase {
             jumlahKemasan: Number(k.jumlahKemasan),
           })),
         );
-      } else if (item.ukuranKemasanKg && item.jumlahKemasan) {
-        packages.push({
-          ukuranKg: Number(item.ukuranKemasanKg),
-          jumlahKemasan: Number(item.jumlahKemasan),
-        });
+      } else if (item.kemasanDetail && item.kemasanDetail.length > 0) {
+        packages.push(
+          ...item.kemasanDetail.map((k: any) => ({
+            ukuranKg: Number(k.ukuranKg),
+            jumlahKemasan: Number(k.jumlahKemasan),
+          })),
+        );
       } else {
         const approvedQty =
           updatePayload?.jumlahDisetujui ??
@@ -523,7 +512,7 @@ export class UpdatePengajuanStokStatusUseCase {
       for (const pkg of packages) {
         if (pkg.jumlahKemasan > 0) {
           stokMasukItems.push({
-            id: item.id,
+            id_itemPengajuan: item.id_itemPengajuan,
             produkEcomId: produkEcomId,
             jumlahDisetujui: pkg.jumlahKemasan,
             hargaGudang: item.hargaGudang,
@@ -537,7 +526,7 @@ export class UpdatePengajuanStokStatusUseCase {
     if (stokMasukItems.length > 0) {
       try {
         await this.stokMasukService.processStockInFromPengajuan(
-          pengajuan.id,
+          pengajuan.id_pengajuanStok,
           stokMasukItems,
         );
         console.log(
@@ -569,13 +558,13 @@ export class UpdatePengajuanStokStatusUseCase {
       }
 
       if (!targetItemId && update.itemId) {
-        const byId = pengajuan.items.find((it: any) => it.id === update.itemId);
-        if (byId) targetItemId = byId.id;
+        const byId = pengajuan.items.find((it: any) => it.id_itemPengajuan === update.itemId);
+        if (byId) targetItemId = byId.id_itemPengajuan;
       }
 
       if (targetItemId) {
         await this.stokRepo.updateItem({
-          where: { id: targetItemId },
+          where: { id_itemPengajuan: targetItemId },
           data: {
             jumlahDisetujui: update.jumlahDisetujui,
           },

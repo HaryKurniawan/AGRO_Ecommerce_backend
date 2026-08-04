@@ -27,23 +27,23 @@ export class GetProdukTerlarisPerKategoriQuery {
         ...(filters.tokoId && { tokoId: filters.tokoId }),
       },
       select: {
-        id: true,
+        id_transaksiKeuntungan: true,
         produkId: true,
         jumlahTerjual: true,
         hargaJual: true,
       },
     });
 
-    const productGroupsMap = new Map<string, { produkId: string; _sum: { jumlahTerjual: number; totalHargaJual: number }; _count: { id: number } }>();
+    const productGroupsMap = new Map<string, { produkId: string; _sum: { jumlahTerjual: number; totalHargaJual: number }; _count: { id_transaksiKeuntungan: number } }>();
     for (const record of records) {
       const existing = productGroupsMap.get(record.produkId) || {
         produkId: record.produkId,
         _sum: { jumlahTerjual: 0, totalHargaJual: 0 },
-        _count: { id: 0 },
+        _count: { id_transaksiKeuntungan: 0 },
       };
       existing._sum.jumlahTerjual += record.jumlahTerjual;
       existing._sum.totalHargaJual += record.jumlahTerjual * record.hargaJual;
-      existing._count.id += 1;
+      existing._count.id_transaksiKeuntungan += 1;
       productGroupsMap.set(record.produkId, existing);
     }
     const aggregasi = Array.from(productGroupsMap.values());
@@ -63,11 +63,11 @@ export class GetProdukTerlarisPerKategoriQuery {
     const produkIds = aggregasi.map((a) => a.produkId);
     const produks = await this.prisma.produkEcom.findMany({
       where: {
-        id: { in: produkIds },
+        id_produk: { in: produkIds },
         ...(filters.kategoriId && { kategoriId: filters.kategoriId }),
       },
       select: {
-        id: true,
+        id_produk: true,
         nama: true,
         namaEtalase: true,
         gambarUrl: true,
@@ -75,8 +75,8 @@ export class GetProdukTerlarisPerKategoriQuery {
         satuan: true,
         kategoriId: true,
         tokoId: true,
-        toko: { select: { id: true, nama: true } },
-        kategori: { select: { id: true, nama: true, icon: true } },
+        toko: { select: { id_toko: true, nama: true } },
+        kategori: { select: { id_kategoriToko: true, nama: true, icon: true } },
       },
     });
 

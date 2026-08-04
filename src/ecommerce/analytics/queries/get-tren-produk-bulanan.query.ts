@@ -136,14 +136,14 @@ export class GetTrenProdukBulananQuery {
 
     const produkIds = aggCurrent.map((a) => a.produkId);
     const produks = await this.prisma.produkEcom.findMany({
-      where: { id: { in: produkIds } },
+      where: { id_produk: { in: produkIds } },
       select: {
-        id: true,
+        id_produk: true,
         nama: true,
         namaEtalase: true,
         gambarUrl: true,
         satuan: true,
-        kategori: { select: { id: true, nama: true, icon: true } },
+        kategori: { select: { id_kategoriToko: true, nama: true, icon: true } },
       },
     });
 

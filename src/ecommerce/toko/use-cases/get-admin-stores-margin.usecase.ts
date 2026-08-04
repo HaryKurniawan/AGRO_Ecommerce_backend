@@ -34,7 +34,7 @@ export class GetAdminStoresMarginUseCase {
       }, 0);
 
       return {
-        id: s.id,
+        id: s.id_toko,
         nama: s.nama,
         kabupaten: s.kabupaten,
         wilayah: s.wilayah,
