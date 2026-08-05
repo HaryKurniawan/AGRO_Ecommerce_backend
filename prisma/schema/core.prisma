@@ -2,7 +2,7 @@
 // PostgreSQL Schema: "core"
 
 model Pengguna {
-  id_pengguna                String    @id @default(uuid())
+  id_pengguna                String    @id @default(uuid()) @map("id")
   email                      String    @unique
   kataSandi                  String
   nama                       String?
@@ -55,7 +55,7 @@ enum Peran {
 // ─── Profil Penjual ──────────────────────────────────────────────────────────
 
 model ProfilPenjual {
-  id_profilPenjual  String        @id @default(uuid())
+  id_profilPenjual  String        @id @default(uuid()) @map("id")
   penggunaId        String        @unique
   namaToko          String
   slugToko          String        @unique

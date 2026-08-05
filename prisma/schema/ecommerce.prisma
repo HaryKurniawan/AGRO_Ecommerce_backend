@@ -4,7 +4,7 @@
 // ─── Toko ───────────────────────────────────────────────────────────────────
 
 model Toko {
-  id_toko           String     @id @default(uuid())
+  id_toko           String     @id @default(uuid()) @map("id")
   kodeToko          String?    @unique
   penjualId         String     @unique
   nama              String
@@ -54,7 +54,7 @@ enum StatusToko {
 // ─── Kategori ────────────────────────────────────────────────────────────────
 
 model KategoriToko {
-  id_kategoriToko String   @id @default(uuid())
+  id_kategoriToko String   @id @default(uuid()) @map("id")
   nama            String   @unique
   icon            String?
   createdAt       DateTime @default(now())
@@ -70,7 +70,7 @@ model KategoriToko {
 // ─── Produk ─────────────────────────────────────────────────────────────────
 
 model ProdukEcom {
-  id_produk         String           @id @default(uuid())
+  id_produk         String           @id @default(uuid()) @map("id")
   tokoId            String
   kategoriId        String
   masterProdukId    String? // null jika produk mandiri (bukan dari gudang)
@@ -121,7 +121,7 @@ model ProdukEcom {
 // ─── Master Produk (Dikelola Admin E-commerce) ─────────────────────────
 
 model MasterProduk {
-  id_masterProduk   String   @id @default(uuid())
+  id_masterProduk   String   @id @default(uuid()) @map("id")
   nama              String   @unique // "Jagung Frozen" — SATU-SATUNYA sumber kebenaran
   slug              String   @unique // "jagung-frozen"
   deskripsi         String // Deskripsi standar untuk semua seller
@@ -155,7 +155,7 @@ model MasterProduk {
 // ─── Mapping Master Produk ↔ Produk Gudang ────────────────────────────
 
 model MappingProdukGudang {
-  id_mappingProdukGudang String   @id @default(uuid())
+  id_mappingProdukGudang String   @id @default(uuid()) @map("id")
   masterProdukId         String
   produkGudangId         String // Reference ke ProdukGudang di database GUDANG
   gudangId               String // Reference ke Gudang di database GUDANG
@@ -172,7 +172,7 @@ model MappingProdukGudang {
 // ─── Riwayat Stok Produk ───────────────────────────────────────────────────
 
 model RiwayatStokProduk {
-  id_riwayatStokProduk String            @id @default(uuid())
+  id_riwayatStokProduk String            @id @default(uuid()) @map("id")
   produkId             String
   penggunaId           String
   tipe                 TipePerubahanStok
@@ -210,7 +210,7 @@ enum StatusProdukEcom {
 // ─── Keranjang ────────────────────────────────────────────────────────────────────
 
 model KeranjangEcom {
-  id_keranjang String   @id @default(uuid())
+  id_keranjang String   @id @default(uuid()) @map("id")
   konsumenId   String   @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -223,7 +223,7 @@ model KeranjangEcom {
 }
 
 model ItemKeranjangEcom {
-  id_itemKeranjang String   @id @default(uuid())
+  id_itemKeranjang String   @id @default(uuid()) @map("id")
   keranjangId      String
   produkId         String
   varianKemasanId  String?
@@ -242,7 +242,7 @@ model ItemKeranjangEcom {
 // ─── Pesanan ───────────────────────────────────────────────────────────────────
 
 model PesananEcom {
-  id_pesanan          String            @id
+  id_pesanan          String            @id @map("id")
   konsumenId          String
   totalHarga          Float
   ongkir              Float             @default(0)
@@ -283,7 +283,7 @@ model PesananEcom {
 }
 
 model ItemPesananEcom {
-  id_itemPesanan  String  @id @default(uuid())
+  id_itemPesanan  String  @id @default(uuid()) @map("id")
   pesananId       String
   produkId        String
   varianKemasanId String?
@@ -322,7 +322,7 @@ enum StatusPesananEcom {
 // ─── Pengiriman Pesanan ──────────────────────────────────────────────────────────
 
 model PengirimanPesananEcom {
-  id_pengirimanPesanan String           @id @default(uuid())
+  id_pengirimanPesanan String           @id @default(uuid()) @map("id")
   nomorResi            String?          @unique
   pesananId            String           @unique
   kurirPenggunaId      String?
@@ -359,7 +359,7 @@ enum StatusPengiriman {
 // ─── Alamat Konsumen ────────────────────────────────────────────────────────
 
 model AlamatKonsumen {
-  id_alamatPembeli String   @id @default(uuid())
+  id_alamatPembeli String   @id @default(uuid()) @map("id")
   konsumenId       String
   label            String
   penerima         String?
@@ -466,7 +466,7 @@ model KonfigurasiPajak {
 // ─── Ulasan Produk ──────────────────────────────────────────────────────────
 
 model UlasanProdukEcom {
-  id_ulasanProduk String               @id @default(uuid())
+  id_ulasanProduk String               @id @default(uuid()) @map("id")
   itemPesananId   String               @unique
   produkId        String
   pesananId       String
@@ -501,7 +501,7 @@ enum StatusLaporanUlasan {
 // ─── Inventaris dan Stok Toko Baru ─────────────────────────────────────────
 
 model PengajuanStokToko {
-  id_pengajuanStok       String              @id @default(uuid())
+  id_pengajuanStok       String              @id @default(uuid()) @map("id")
   nomorPengajuan         String?             @unique
   tokoId                 String
   gudangId               String
@@ -528,7 +528,7 @@ model PengajuanStokToko {
 }
 
 model ItemPengajuanStok {
-  id_itemPengajuan String  @id @default(uuid())
+  id_itemPengajuan String  @id @default(uuid()) @map("id")
   pengajuanId      String
   produkGudangId   String // Reference ke ProdukGudang.id (di database GUDANG)
   namaProduk       String // Snapshot nama produk saat pengajuan
@@ -556,7 +556,7 @@ enum ModePengemasan {
 }
 
 model ItemPengajuanStokKemasan {
-  id_itemPengajuanKemasan String @id @default(uuid())
+  id_itemPengajuanKemasan String @id @default(uuid()) @map("id")
   itemPengajuanStokId     String
   ukuranKg                Float // 1.0 atau 2.5
   jumlahKemasan           Int
@@ -622,7 +622,7 @@ model RiwayatMargin {
 // ─── Stok Masuk Produk (FIFO Batches) ─────────────────────────────────
 
 model StokMasukProduk {
-  id_stokMasuk         String    @id @default(uuid())
+  id_stokMasuk         String    @id @default(uuid()) @map("id")
   produkId             String
   pengajuanStokId      String
   itemPengajuanStokId  String
@@ -654,7 +654,7 @@ model StokMasukProduk {
 // ─── Transaksi Keuntungan (Profit Transactions) ─────────────────────────
 
 model TransaksiKeuntungan {
-  id_transaksiKeuntungan String            @id @default(uuid())
+  id_transaksiKeuntungan String            @id @default(uuid()) @map("id")
   itemPesananId          String            @unique
   pesananId              String
   produkId               String
@@ -684,7 +684,7 @@ model TransaksiKeuntungan {
 // ─── Detail Batch per Transaksi Keuntungan ─────────────────────────────
 
 model TransaksiKeuntunganBatch {
-  id_transaksiKeuntunganBatch String   @id @default(uuid())
+  id_transaksiKeuntunganBatch String   @id @default(uuid()) @map("id")
   transaksiKeuntunganId       String
   stokMasukId                 String
   jumlahDigunakan             Float // Berapa kg dari batch ini yang digunakan
@@ -700,7 +700,7 @@ model TransaksiKeuntunganBatch {
 }
 
 model VarianKemasan {
-  id_varianKemasan String   @id @default(uuid())
+  id_varianKemasan String   @id @default(uuid()) @map("id")
   produkId         String
   ukuranKg         Float // 1.0, 2.5, 10.0
   biayaTambahan    Float    @default(0) // Biaya ekstra jika milih kemasan eceran/kecil

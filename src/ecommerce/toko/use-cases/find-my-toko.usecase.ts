@@ -22,7 +22,7 @@ export class FindMyStoreUseCase {
         where: {
           OR: [
             { courierStaffId: penggunaId },
-            { kurirStaffs: { some: { id: penggunaId } } },
+            { kurirStaffs: { some: { id_pengguna: penggunaId } } },
             { penjual: { kurirId: penggunaId } }
           ]
         } as any,
