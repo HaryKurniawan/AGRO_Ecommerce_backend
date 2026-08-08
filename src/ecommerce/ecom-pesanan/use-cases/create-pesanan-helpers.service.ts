@@ -273,6 +273,7 @@ export class CreateOrderHelpersService {
         customerName: konsumenData?.nama,
         customerPhone: konsumenData?.noTelepon || mobileNumber,
         items: xenditItems,
+        paymentMethod: metodeBayar,
       });
 
       finalPaymentId = invoice.id;

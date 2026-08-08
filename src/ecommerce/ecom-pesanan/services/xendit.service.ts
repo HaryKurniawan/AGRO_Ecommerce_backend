@@ -9,6 +9,7 @@ export interface XenditInvoicePayload {
   customerName?: string;
   customerPhone?: string;
   description?: string;
+  paymentMethod?: string;
   items?: {
     name: string;
     quantity: number;
@@ -75,8 +76,28 @@ export class XenditService {
   ): Promise<XenditInvoiceResult> {
     try {
       this.logger.log(
-        `Creating Xendit invoice for externalId: ${payload.externalId}, amount: ${payload.amount}`,
+        `Creating Xendit invoice for externalId: ${payload.externalId}, amount: ${payload.amount}, method: ${payload.paymentMethod}`,
       );
+
+      // Convert "BNI_VA" -> "BNI", "OVO" -> "OVO"
+      const mappedMethod = payload.paymentMethod
+        ? payload.paymentMethod.replace("_VA", "").toUpperCase()
+        : null;
+
+      const payment_methods = mappedMethod
+        ? [mappedMethod]
+        : [
+            "BCA",
+            "BNI",
+            "BRI",
+            "MANDIRI",
+            "PERMATA",
+            "DANA",
+            "OVO",
+            "GOPAY",
+            "LINKAJA",
+            "SHOPEEPAY",
+          ];
 
       const response = await axios.post(
         this.invoiceApiUrl,
@@ -96,18 +117,7 @@ export class XenditService {
           invoice_duration: 3600, // 1 jam dalam detik
           success_redirect_url: `${this.configService.get("FRONTEND_URL")}/pesanan?payment=success`,
           failure_redirect_url: `${this.configService.get("FRONTEND_URL")}/pesanan?payment=failed`,
-          payment_methods: [
-            "BCA",
-            "BNI",
-            "BRI",
-            "MANDIRI",
-            "PERMATA",
-            "DANA",
-            "OVO",
-            "GOPAY",
-            "LINKAJA",
-            "SHOPEEPAY",
-          ],
+          payment_methods,
         },
         this.axiosConfig,
       );
