@@ -39,6 +39,8 @@ import { LogisticsModule } from "../../core/logistik/logistics.module";
 import { NotificationsModule } from "../../core/notifikasi/notifikasis.module";
 import { ProfitReportModule } from "../profit-report/profit-report.module";
 import { PengajuanStokModule } from "../pengajuan-stok/pengajuan-stok.module";
+import { HandleXenditWebhookUseCase } from "./use-cases/handle-xendit-webhook.usecase";
+
 @Module({
   imports: [
     ConfigModule,
@@ -50,7 +52,6 @@ import { PengajuanStokModule } from "../pengajuan-stok/pengajuan-stok.module";
     ProfitReportModule,
     PengajuanStokModule,
   ],
-
   controllers: [
     PesananCustomerController,
     PesananSellerController,
@@ -86,6 +87,7 @@ import { PengajuanStokModule } from "../pengajuan-stok/pengajuan-stok.module";
     XenditService,
     CreateOrderHelpersService,
     CancelExpiredOrdersScheduler,
+    HandleXenditWebhookUseCase,
   ],
   exports: [PesananEcomsRepository],
 })
