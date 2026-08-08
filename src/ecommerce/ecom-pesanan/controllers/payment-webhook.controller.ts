@@ -82,8 +82,8 @@ export class PaymentWebhookController {
     }
 
     // 3. Cari semua pesanan berdasarkan external_id
-    // external_id berupa gabungan order ID dipisahkan "-"
-    const orderIds = externalId.split("-");
+    // external_id berupa gabungan order ID dipisahkan ","
+    const orderIds = externalId.split(",");
     const pesananList = await this.prisma.pesananEcom.findMany({
       where: { id_pesanan: { in: orderIds } },
     });
@@ -273,7 +273,7 @@ export class PaymentWebhookController {
       return { message: "Event ignored" };
     }
 
-    const orderIds = orderId.split("-");
+    const orderIds = orderId.split(",");
     const pesananList = await this.prisma.pesananEcom.findMany({
       where: { id_pesanan: { in: orderIds } },
     });

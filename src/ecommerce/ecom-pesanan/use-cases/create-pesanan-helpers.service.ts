@@ -221,7 +221,7 @@ export class CreateOrderHelpersService {
       (sum, o) => sum + (o.totalHarga || 0),
       0,
     );
-    const externalId = createdOrders.map((o) => o.id_pesanan).join("-");
+    const externalId = createdOrders.map((o) => o.id_pesanan).join(",");
     const isQRIS = metodeBayar.toUpperCase() === "QRIS";
 
     let finalPaymentId: string;
