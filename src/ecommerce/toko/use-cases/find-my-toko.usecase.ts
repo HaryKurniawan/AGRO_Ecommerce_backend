@@ -66,10 +66,13 @@ export class FindMyStoreUseCase {
       phoneNumber: rawCourier.noTelepon,
     } : null;
 
+    const totalPenjualan = await this.storesRepo.calculateTotalPenjualan(toko.id_toko);
+
     return {
       ...toko,
       id: toko.id_toko,
       courierStaff,
+      totalPenjualan,
     };
   }
 }

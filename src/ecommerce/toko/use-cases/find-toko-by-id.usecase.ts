@@ -27,6 +27,8 @@ export class FindStoreByIdUseCase {
 
     if (!toko) throw new NotFoundException("Toko not found");
 
+    const totalPenjualan = await this.storesRepo.calculateTotalPenjualan(toko.id_toko);
+
     // Map fields for frontend compatibility
     return {
       ...toko,
@@ -34,6 +36,7 @@ export class FindStoreByIdUseCase {
       foto: toko.fotoUrl,
       banner: toko.bannerUrl,
       courierStaff: (toko as any).penjual?.kurir ? { name: (toko as any).penjual.kurir.nama } : undefined,
+      totalPenjualan,
     };
   }
 }

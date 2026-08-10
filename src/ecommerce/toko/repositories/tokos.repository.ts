@@ -56,4 +56,12 @@ export class TokosRepository {
       where: { id_pengguna: id },
     });
   }
+
+  async calculateTotalPenjualan(tokoId: string): Promise<number> {
+    const agg = await this.prisma.itemPesananEcom.aggregate({
+      where: { produk: { tokoId } },
+      _sum: { jumlah: true },
+    });
+    return agg._sum.jumlah ?? 0;
+  }
 }
