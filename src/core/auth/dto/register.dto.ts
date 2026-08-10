@@ -21,10 +21,10 @@ export class RegisterDto {
   @MinLength(6)
   kataSandi: string;
 
-  @ApiProperty({ example: "081234567890" })
+  @ApiPropertyOptional({ example: "081234567890" })
   @IsString()
-  @IsNotEmpty()
-  noTelepon: string;
+  @IsOptional()
+  noTelepon?: string;
 
   @ApiProperty({ example: "John Doe" })
   @IsString()
