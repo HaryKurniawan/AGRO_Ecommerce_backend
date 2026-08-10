@@ -166,7 +166,7 @@ export class AuthController {
 
       const redirectBase = this.getFrontendUrl(origin);
       res.redirect(
-        `${redirectBase}/auth/google/callback?token=${result.accessToken}&nama=${encodeURIComponent(result.pengguna.nama || "")}&email=${encodeURIComponent(result.pengguna.email)}&peran=${result.pengguna.peran}`,
+        `${redirectBase}/auth/google/callback?token=${result.accessToken}&id=${result.pengguna.id}&nama=${encodeURIComponent(result.pengguna.nama || "")}&email=${encodeURIComponent(result.pengguna.email)}&peran=${result.pengguna.peran}`,
       );
     } catch (error: any) {
       const redirectBase = this.getFrontendUrl(origin);
