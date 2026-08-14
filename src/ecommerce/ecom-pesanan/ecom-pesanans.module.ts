@@ -26,6 +26,7 @@ import { GenerateOrderReportUseCase } from "./use-cases/generate-order-report.us
 import { GenerateAdminOrderReportUseCase } from "./use-cases/generate-admin-order-report.usecase";
 import { SubmitDeliveryProofUseCase } from "./use-cases/submit-delivery-proof.usecase";
 import { SellerConfirmOrderUseCase } from "./use-cases/seller-confirm-order.usecase";
+import { SellerDashboardStatsUseCase } from "./use-cases/seller-dashboard-stats.usecase";
 import { AutoConfirmOrderService } from "./services/auto-confirm-order.service";
 import { XenditService } from "./services/xendit.service";
 import { CreateOrderHelpersService } from "./use-cases/create-pesanan-helpers.service";
@@ -83,6 +84,7 @@ import { HandleXenditWebhookUseCase } from "./use-cases/handle-xendit-webhook.us
     GenerateAdminOrderReportUseCase,
     SubmitDeliveryProofUseCase,
     SellerConfirmOrderUseCase,
+    SellerDashboardStatsUseCase,
     AutoConfirmOrderService,
     XenditService,
     CreateOrderHelpersService,

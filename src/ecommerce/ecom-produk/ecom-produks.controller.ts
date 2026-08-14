@@ -86,12 +86,16 @@ export class EcomProductsController {
     @Param("tokoId") tokoId: string,
     @Query("page") page?: string,
     @Query("limit") limit?: string,
+    @Query("search") search?: string,
+    @Query("status") status?: string,
   ): Promise<any> {
     return this.findByStoreUC.execute(
       tokoId,
       page ? +page : undefined,
       limit ? +limit : undefined,
       false, // all
+      search,
+      status
     );
   }
 

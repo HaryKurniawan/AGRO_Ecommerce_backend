@@ -19,6 +19,7 @@ import { UpdateOrderStatusUseCase } from "../use-cases/update-pesanan-status.use
 import { InitShippingUseCase } from "../use-cases/init-shipping.usecase";
 import { GenerateOrderReportUseCase } from "../use-cases/generate-order-report.usecase";
 import { SellerConfirmOrderUseCase } from "../use-cases/seller-confirm-order.usecase";
+import { SellerDashboardStatsUseCase } from "../use-cases/seller-dashboard-stats.usecase";
 import { UpdatePesananStatusDto } from "../dto/update-pesanan-status.dto";
 import { InitShippingDto } from "../dto/init-shipping.dto";
 
@@ -31,6 +32,7 @@ export class PesananSellerController {
     private readonly initShippingUC: InitShippingUseCase,
     private readonly generateOrderReportUC: GenerateOrderReportUseCase,
     private readonly sellerConfirmOrderUC: SellerConfirmOrderUseCase,
+    private readonly sellerDashboardStatsUC: SellerDashboardStatsUseCase,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -51,6 +53,14 @@ export class PesananSellerController {
       limit ? +limit : 10,
       isGrosir === "true" ? true : isGrosir === "false" ? false : undefined,
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Get("penjual/:tokoId/dashboard-stats")
+  @ApiOperation({ summary: "Seller: get dashboard statistics" })
+  async getDashboardStats(@Param("tokoId") tokoId: string): Promise<any> {
+    return this.sellerDashboardStatsUC.execute(tokoId);
   }
 
   @UseGuards(JwtAuthGuard)

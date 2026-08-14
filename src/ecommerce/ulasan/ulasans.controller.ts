@@ -60,7 +60,7 @@ export class ReviewsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN", "ADMIN")
+  @Roles("SUPER_ADMIN", "ADMIN_CS")
   @ApiBearerAuth()
   @Get("admin/all")
   @ApiOperation({ summary: "Admin: Get all ulasans across the platform" })
@@ -138,7 +138,7 @@ export class ReviewsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN", "ADMIN")
+  @Roles("SUPER_ADMIN", "ADMIN_CS")
   @ApiBearerAuth()
   @Get("admin/reported")
   @ApiOperation({ summary: "Admin: Get reported ulasan" })
@@ -155,7 +155,7 @@ export class ReviewsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN", "ADMIN")
+  @Roles("SUPER_ADMIN", "ADMIN_CS")
   @ApiBearerAuth()
   @Patch("admin/:id/approve-takedown")
   @ApiOperation({ summary: "Admin: Approve takedown (hide ulasan)" })
@@ -164,7 +164,7 @@ export class ReviewsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN", "ADMIN")
+  @Roles("SUPER_ADMIN", "ADMIN_CS")
   @ApiBearerAuth()
   @Patch("admin/:id/reject-takedown")
   @ApiOperation({ summary: "Admin: Reject takedown" })

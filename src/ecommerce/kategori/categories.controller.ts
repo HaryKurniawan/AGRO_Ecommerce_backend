@@ -35,7 +35,7 @@ export class CategoriesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("ADMIN", "SUPER_ADMIN")
+  @Roles("ADMIN_CS", "SUPER_ADMIN")
   @ApiBearerAuth()
   @Post()
   @ApiOperation({ summary: "Create kategori (admin only)" })
@@ -44,7 +44,7 @@ export class CategoriesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("ADMIN", "SUPER_ADMIN")
+  @Roles("ADMIN_CS", "SUPER_ADMIN")
   @ApiBearerAuth()
   @Patch(":id")
   @ApiOperation({ summary: "Update kategori (admin only)" })
@@ -56,7 +56,7 @@ export class CategoriesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("ADMIN", "SUPER_ADMIN")
+  @Roles("ADMIN_CS", "SUPER_ADMIN")
   @ApiBearerAuth()
   @Delete(":id")
   @ApiOperation({ summary: "Delete kategori (admin only)" })

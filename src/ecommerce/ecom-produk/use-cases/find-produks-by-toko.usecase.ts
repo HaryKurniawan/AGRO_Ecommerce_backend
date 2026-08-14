@@ -6,10 +6,21 @@ import { ProdukEcomsRepository } from "../repositories/ecom-produks.repository";
 export class FindProductsByStoreUseCase {
   constructor(private readonly productsRepo: ProdukEcomsRepository) {}
 
-  async execute(tokoId: string, page = 1, limit = 100, activeOnly = true) {
+  async execute(tokoId: string, page = 1, limit = 100, activeOnly = true, search?: string, status?: string) {
     const skip = (page - 1) * limit;
     const where: any = { tokoId };
-    if (activeOnly) where.status = "ACTIVE";
+    if (activeOnly) {
+      where.status = "ACTIVE";
+    } else if (status && status !== "semua") {
+      if (status === "active") where.status = "ACTIVE";
+      else if (status === "inactive") where.status = "INACTIVE";
+      else if (status === "draft") where.status = "DRAFT";
+      else if (status === "out_of_stock") where.stok = { lte: 0 }; // custom case if handled here
+    }
+
+    if (search) {
+      where.nama = { contains: search }; // assuming MySQL/MariaDB or default insensitive in Postgres
+    }
 
     const [data, total] = await Promise.all([
       this.productsRepo.findMany({
