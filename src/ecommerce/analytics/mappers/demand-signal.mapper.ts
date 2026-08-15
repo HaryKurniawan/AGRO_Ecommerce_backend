@@ -27,7 +27,7 @@ export function mapDemandSignalData(
     aggPrev.map((p) => [p.produkId, p._sum.jumlahTerjual ?? 0]),
   );
 
-  const produkMap = new Map(produks.map((p) => [p.id, p]));
+  const produkMap = new Map(produks.map((p) => [p.id_produk || p.id, p]));
 
   const masterMap = new Map<
     string,

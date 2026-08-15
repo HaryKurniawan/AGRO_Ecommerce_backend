@@ -13,18 +13,13 @@ export class SellerDashboardStatsUseCase {
     };
 
     // 1. Get status counts
-    const statusCounts: { status: string; _count: { id: number } }[] = await (
-      this.prisma.pesananEcom as any
-    ).groupBy({
-      by: ["status"],
+    const ordersForStatus = await this.prisma.pesananEcom.findMany({
       where: whereCondition,
-      _count: {
-        id: true,
-      },
+      select: { status: true },
     });
 
-    const statusMap = statusCounts.reduce((acc, curr) => {
-      acc[curr.status] = curr._count.id;
+    const statusMap = ordersForStatus.reduce((acc, curr) => {
+      acc[curr.status] = (acc[curr.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 

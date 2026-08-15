@@ -23,9 +23,10 @@ export function mapTrenKomoditasGlobalData(
 
   for (const agg of aggCurrent) {
     const produk = produkMap.get(agg.produkId) as any;
-    if (!produk?.masterProduk?.kodeKomoditasGlobal) continue;
+    const mProduk = produk?.masterProduk;
+    if (!mProduk) continue;
 
-    const kode = produk.masterProduk.kodeKomoditasGlobal;
+    const kode = mProduk.kodeKomoditasGlobal || mProduk.id_masterProduk;
 
     if (!komoditasMap.has(kode)) {
       komoditasMap.set(kode, {
@@ -46,9 +47,10 @@ export function mapTrenKomoditasGlobalData(
 
   for (const agg of aggPrev) {
     const produk = produkMap.get(agg.produkId) as any;
-    if (!produk?.masterProduk?.kodeKomoditasGlobal) continue;
+    const mProduk = produk?.masterProduk;
+    if (!mProduk) continue;
 
-    const kode = produk.masterProduk.kodeKomoditasGlobal;
+    const kode = mProduk.kodeKomoditasGlobal || mProduk.id_masterProduk;
 
     if (!komoditasMap.has(kode)) {
       komoditasMap.set(kode, {
