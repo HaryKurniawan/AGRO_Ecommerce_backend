@@ -14,7 +14,7 @@ export function mapTrenProdukBulananData(
   );
 
   const data = aggCurrent.map((agg, idx) => {
-    const produk = produks.find((p) => p.id === agg.produkId);
+    const produk = produks.find((p) => (p.id || p.id_produk) === agg.produkId);
     const curr = agg._sum.jumlahTerjual ?? 0;
     const prev = (prevMap.get(agg.produkId) as number) ?? 0;
     const trendPersen =

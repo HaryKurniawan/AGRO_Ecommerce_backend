@@ -92,9 +92,10 @@ export class AdminGetCsConversationsUseCase {
         lastMessageAt: conv.waktuPesanTerakhir,
         customer: customer
           ? {
-              id: customer.id,
+              id: customer.id_pengguna,
               name: displayName,
               email: customer.email || "",
+              peran: customer.peran,
             }
           : null,
         unreadCount: (conv as any)._count?.pesan || 0,

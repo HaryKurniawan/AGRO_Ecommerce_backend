@@ -14,11 +14,18 @@ export class MasterKomoditasService {
       throw new Error("GUDANG_API_URL is not configured");
     }
 
-    // baseURL = http://localhost:5005
+    const apiKey =
+      this.configService.get<string>("ECOMMERCE_API_KEY") ||
+      "ecommerce-nestjs-to-gudang-express-secure-key";
+
+    // baseURL = GUDANG_API_URL (e.g. https://gudang-agrojabar.vercel.app)
     // endpoint gudang: GET /api/master-komoditas/public/all
     this.gudangClient = axios.create({
       baseURL: gudangUrl,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
       timeout: 15000,
       validateStatus: () => true, // tangani semua status secara manual
     });

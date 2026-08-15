@@ -8,7 +8,7 @@ export function mapTrenKomoditasGlobalData(
   prevPeriodeKey: string,
   filterKode?: string,
 ) {
-  const produkMap = new Map(produks.map((p) => [p.id, p]));
+  const produkMap = new Map(produks.map((p) => [p.id || p.id_produk, p]));
 
   type AggEntry = {
     kodeKomoditasGlobal: string;

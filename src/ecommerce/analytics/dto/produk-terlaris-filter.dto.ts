@@ -111,9 +111,10 @@ export class RiwayatBulananFilterDto {
 }
 
 export class TrenBulananFilterDto {
-  @ApiPropertyOptional({ description: "ID Toko seller", required: true })
+  @ApiPropertyOptional({ description: "ID Toko seller", required: false })
+  @IsOptional()
   @IsString()
-  tokoId: string;
+  tokoId?: string;
 
   @ApiPropertyOptional({ description: "Jumlah bulan ke belakang", default: 6 })
   @IsOptional()
@@ -125,9 +126,10 @@ export class TrenBulananFilterDto {
 }
 
 export class TrenProdukBulananFilterDto {
-  @ApiPropertyOptional({ description: "ID Toko seller", required: true })
+  @ApiPropertyOptional({ description: "ID Toko seller", required: false })
+  @IsOptional()
   @IsString()
-  tokoId: string;
+  tokoId?: string;
 
   @ApiPropertyOptional({
     enum: PeriodEnum,

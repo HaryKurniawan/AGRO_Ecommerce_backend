@@ -1,5 +1,6 @@
-import { extname, join } from "path";
+import { extname, join, resolve } from "path";
 import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from "fs";
+import { Response } from "express";
 
 import {
   Controller,
@@ -11,10 +12,37 @@ import {
   Get,
   Delete,
   Query,
+  Res,
+  NotFoundException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { v4 as uuid } from "uuid";
+
+const getUploadDir = (folder: string) => {
+  const targetFolder = folder || "lainnya";
+  
+  // Periksa beberapa kemungkinan path working directory
+  const possibleRoots = [
+    resolve(process.cwd(), "backend", "public", "uploads", targetFolder),
+    resolve(process.cwd(), "public", "uploads", targetFolder),
+    resolve(__dirname, "..", "..", "..", "public", "uploads", targetFolder),
+    resolve(__dirname, "..", "..", "..", "..", "public", "uploads", targetFolder),
+  ];
+
+  let dir = possibleRoots[0];
+  for (const candidate of possibleRoots) {
+    if (existsSync(candidate) || existsSync(join(candidate, ".."))) {
+      dir = candidate;
+      break;
+    }
+  }
+
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  return dir;
+};
 
 @Controller("upload")
 export class UploadController {
@@ -23,11 +51,9 @@ export class UploadController {
     FileInterceptor("file", {
       storage: diskStorage({
         destination: (req, file, cb) => {
-          const folder = req.params.folder || "lainnya";
-          const uploadPath = `./public/uploads/${folder}`;
-          if (!existsSync(uploadPath)) {
-            mkdirSync(uploadPath, { recursive: true });
-          }
+          const rawFolder = req.params?.folder;
+          const folder = typeof rawFolder === "string" ? rawFolder : "lainnya";
+          const uploadPath = getUploadDir(folder);
           cb(null, uploadPath);
         },
         filename: (req, file, cb) => {
@@ -36,12 +62,12 @@ export class UploadController {
         },
       }),
       limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
+        fileSize: 10 * 1024 * 1024, // 10MB limit
       },
       fileFilter: (req, file, cb) => {
-        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/i)) {
           return cb(
-            new BadRequestException("Only gambar files are allowed!"),
+            new BadRequestException("Hanya file gambar (JPG, PNG, GIF, WEBP) yang diperbolehkan!"),
             false,
           );
         }
@@ -54,9 +80,8 @@ export class UploadController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
-      throw new BadRequestException("No file provided");
+      throw new BadRequestException("Tidak ada file yang diunggah");
     }
-    // Return relative URL that can be served via static file serving
     return {
       statusCode: 201,
       message: "File uploaded successfully",
@@ -66,17 +91,23 @@ export class UploadController {
     };
   }
 
+  @Get("file/:folder/:fileName")
+  serveFile(
+    @Param("folder") folder: string,
+    @Param("fileName") fileName: string,
+    @Res() res: Response,
+  ) {
+    const filePath = join(getUploadDir(folder), fileName);
+    if (!existsSync(filePath)) {
+      throw new NotFoundException("File foto tidak ditemukan");
+    }
+    return res.sendFile(filePath);
+  }
+
   @Get("admin/list")
   listFiles(@Query("folder") folder: string) {
     const targetFolder = folder || "lainnya";
-    const directoryPath = join(__dirname, "..", "..", "..", "public", "uploads", targetFolder);
-
-    if (!existsSync(directoryPath)) {
-      return {
-        statusCode: 200,
-        data: [],
-      };
-    }
+    const directoryPath = getUploadDir(targetFolder);
 
     try {
       const files = readdirSync(directoryPath);
@@ -85,7 +116,7 @@ export class UploadController {
         const stats = statSync(filePath);
         return {
           name: fileName,
-          url: `/uploads/${targetFolder}/${fileName}`,
+          url: `/upload/file/${targetFolder}/${fileName}`,
           size: stats.size,
           createdAt: stats.birthtime,
         };
@@ -106,7 +137,7 @@ export class UploadController {
       throw new BadRequestException("Folder and fileName query parameters are required");
     }
 
-    const directoryPath = join(__dirname, "..", "..", "..", "public", "uploads", folder);
+    const directoryPath = getUploadDir(folder);
     const filePath = join(directoryPath, fileName);
 
     if (existsSync(filePath)) {
@@ -130,7 +161,7 @@ export class UploadController {
       throw new BadRequestException("Folder query parameter is required");
     }
 
-    const directoryPath = join(__dirname, "..", "..", "..", "public", "uploads", folder);
+    const directoryPath = getUploadDir(folder);
 
     if (existsSync(directoryPath)) {
       try {

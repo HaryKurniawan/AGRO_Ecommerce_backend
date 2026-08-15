@@ -5,6 +5,7 @@ import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import helmet from "helmet";
 import * as express from "express";
 import * as dns from "dns";
+import { join } from "path";
 
 // Fix for Node.js 17+ hanging on IPv6 when calling Google APIs
 dns.setDefaultResultOrder("ipv4first");
@@ -53,6 +54,10 @@ async function bootstrap() {
 
   // Global filters
   app.useGlobalFilters(new AllExceptionsFilter(), new HttpExceptionFilter());
+
+  // Static files serving for uploaded media
+  app.use("/uploads", express.static(join(process.cwd(), "public", "uploads")));
+  app.use("/api/uploads", express.static(join(process.cwd(), "public", "uploads")));
 
   // Global API Key Guard (Requires X-API-KEY header)
   const apiKeyGuard = new ApiKeyGuard(configService);

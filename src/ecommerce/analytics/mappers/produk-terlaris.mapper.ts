@@ -20,7 +20,7 @@ export function mapProdukTerlarisData(
   >();
 
   for (const agg of aggregasi) {
-    const produk = produks.find((p) => p.id === agg.produkId);
+    const produk = produks.find((p) => (p.id || p.id_produk) === agg.produkId);
     if (!produk) continue;
 
     mergedMap.set(agg.produkId, {
@@ -79,7 +79,7 @@ export function mapProdukTerlarisData(
       topProduk: topProduk.map((item, idx) => ({
         rank: idx + 1,
         produk: {
-          id: item.produk.id,
+          id: item.produk.id_produk || item.produk.id,
           nama: item.produk.namaEtalase || item.produk.nama,
           gambarUrl: item.produk.gambarUrl,
           harga: item.produk.harga,
