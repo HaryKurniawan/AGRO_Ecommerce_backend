@@ -69,9 +69,9 @@ export class GetUserConversationsUseCase {
         : Promise.resolve([]),
     ]);
 
-    const userMap = new Map(pengguna.map((u) => [u.id, u.nama]));
+    const userMap = new Map(pengguna.map((u: any) => [u.id_pengguna || u.id, u.nama]));
     const storeMap = new Map(
-      toko.map((s) => [s.id, { nama: s.nama, foto: s.fotoUrl }]),
+      toko.map((s: any) => [s.id_toko || s.id, { nama: s.nama, foto: s.fotoUrl }]),
     );
 
     // Pemrosesan perakitan akhir data dan mapping Unread count per kamar
