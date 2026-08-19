@@ -32,6 +32,7 @@ export class GetProfitSummaryByTokoQuery {
           lte: new Date(new Date(filters.endDate).setHours(23, 59, 59, 999)),
         },
       }),
+      statusPesanan: { in: ["SELESAI", "DITUTUP"] as any },
     };
 
     if (filters.isB2B !== undefined) {
