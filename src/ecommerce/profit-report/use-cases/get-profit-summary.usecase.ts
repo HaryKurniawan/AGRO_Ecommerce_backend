@@ -23,7 +23,7 @@ export class GetProfitSummaryUseCase {
     const produkTerlaris = await this.getTopProductsQuery.execute(
       tokoId,
       filters,
-      5,
+      100, // Return up to 100 products for the merged list
     );
 
     // Calculate average margin
@@ -32,8 +32,7 @@ export class GetProfitSummaryUseCase {
         ? (summary.totalKeuntungan / summary.totalHargaBeli) * 100
         : 0;
 
-    // TODO: Implement trend data based on groupBy
-    const trendKeuntungan = []; // Placeholder for now
+    const trendKeuntungan = summary.trendKeuntungan || [];
 
     return {
       totalKeuntungan: summary.totalKeuntungan,
@@ -42,6 +41,7 @@ export class GetProfitSummaryUseCase {
       rataRataMargin,
       produkTerlaris,
       trendKeuntungan,
+      transaksiDetail: summary.transaksiDetail,
     };
   }
 }
